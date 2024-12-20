@@ -1,3 +1,4 @@
+use chacha20poly1305::aead::rand_core::TryRngCore;
 use chacha20poly1305::aead::{rand_core::RngCore, OsRng};
 use chacha20poly1305::{AeadInPlace, ChaCha20Poly1305, Error as CryptoError, Key, KeyInit, Nonce, Tag, XChaCha20Poly1305, XNonce};
 
@@ -59,7 +60,7 @@ pub fn encrypt_in_place_xnonce(buffer: &mut [u8], xnonce: &[u8; 24], key: &[u8; 
 /// `getrandom` documentation for details.
 pub fn generate_random_bytes<const N: usize>() -> [u8; N] {
     let mut bytes = [0; N];
-    OsRng.fill_bytes(&mut bytes);
+    OsRng.try_fill_bytes(&mut bytes).expect("Failed to fill bytes! This is a hack for Esp32.");
     bytes
 }
 
