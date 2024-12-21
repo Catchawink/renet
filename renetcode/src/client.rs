@@ -98,7 +98,7 @@ impl NetcodeClient {
             } => {
            
             },
-            _ => {
+            ClientAuthentication::Secure { connect_token } => {
 
             },
         };
@@ -115,12 +115,12 @@ impl NetcodeClient {
            
             },
             ClientAuthentication::Secure { connect_token } => {
-
+                let x = connect_token;
             },
         };
     }
 
-    pub fn dummy_func_2(current_time: Duration, authentication: ClientAuthentication) -> Result<(), NetcodeError> {
+    pub fn dummy_func_2(current_time: Duration, authentication: ClientAuthentication) {
         match authentication {
             ClientAuthentication::Unsecure {
                 server_addr,
@@ -128,16 +128,17 @@ impl NetcodeClient {
                 client_id,
                 user_data,
             } => {
-                todo!()
+           
             },
-            ClientAuthentication::Secure { connect_token } => connect_token,
+            ClientAuthentication::Secure { connect_token } => {
+                let x = connect_token.clone();
+            },
         };
 
-        Ok(())
     }
 
     pub fn dummy_func_3(current_time: Duration, authentication: ClientAuthentication) -> Result<(), NetcodeError> {
-        let connect_token: ConnectToken = match authentication {
+        match authentication {
             ClientAuthentication::Unsecure {
                 server_addr,
                 protocol_id,
