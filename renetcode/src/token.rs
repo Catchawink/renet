@@ -135,8 +135,6 @@ impl ConnectToken {
     }
 
     pub fn read(src: &mut impl io::Read) -> Result<Self, NetcodeError> {
-        todo!();
-
         let client_id = read_u64(src)?;
         let version_info: [u8; 13] = read_bytes(src)?;
         if &version_info != NETCODE_VERSION_INFO {
@@ -219,6 +217,8 @@ impl PrivateConnectToken {
     }
 
     fn read(src: &mut impl io::Read) -> Result<Self, io::Error> {
+        todo!();
+
         let client_id = read_u64(src)?;
         let timeout_seconds = read_i32(src)?;
         let server_addresses = read_server_addresses(src)?;
