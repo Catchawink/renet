@@ -389,7 +389,7 @@ mod tests {
             version_info: [0; 13], // "NETCODE 1.02" ASCII with null terminator.
             protocol_id: 1,
             expire_timestamp: 3,
-            data: [5; 1024],
+            data: [5; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
         };
         let mut buffer = Vec::new();
         connection_request.write(&mut buffer).unwrap();
@@ -402,7 +402,7 @@ mod tests {
     fn connection_challenge_serialization() {
         let connection_challenge = Packet::Challenge {
             token_sequence: 0,
-            token_data: [1u8; 300],
+            token_data: [1u8; NETCODE_CHALLENGE_TOKEN_BYTES],
         };
 
         let mut buffer = Vec::new();

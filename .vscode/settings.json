@@ -1,0 +1,10 @@
+{
+	"rust-analyzer.cargo.target": "xtensa-esp32-espidf",
+	"rust-analyzer.cargo.extraArgs": ["-Zbuild-std=panic_abort,std", "-Zbuild-std-features=panic_immediate_abort"],
+	"rust-analyzer.cargo.extraEnv": {
+		"RUSTUP_TOOLCHAIN": "esp",
+	},
+	"terminal.integrated.env.windows": {
+		"RUSTUP_TOOLCHAIN": "esp",
+	},
+}

@@ -11,7 +11,7 @@ use crate::{
     serialize::*,
     NetcodeError, NETCODE_ADDITIONAL_DATA_SIZE, NETCODE_ADDRESS_IPV4, NETCODE_ADDRESS_IPV6, NETCODE_ADDRESS_NONE,
     NETCODE_CONNECT_TOKEN_PRIVATE_BYTES, NETCODE_CONNECT_TOKEN_XNONCE_BYTES, NETCODE_KEY_BYTES, NETCODE_USER_DATA_BYTES,
-    NETCODE_VERSION_INFO,
+    NETCODE_VERSION_INFO, SERVER_ADDRESSES_COUNT,
 };
 use chacha20poly1305::aead::Error as CryptoError;
 
@@ -47,7 +47,7 @@ pub struct ConnectToken {
     pub create_timestamp: u64,
     pub expire_timestamp: u64,
     pub xnonce: [u8; NETCODE_CONNECT_TOKEN_XNONCE_BYTES],
-    pub server_addresses: [Option<SocketAddr>; 32],
+    pub server_addresses: [Option<SocketAddr>; SERVER_ADDRESSES_COUNT],
     pub client_to_server_key: [u8; NETCODE_KEY_BYTES],
     pub server_to_client_key: [u8; NETCODE_KEY_BYTES],
     pub private_data: [u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
@@ -58,6 +58,9 @@ pub struct ConnectToken {
 pub(crate) struct PrivateConnectToken {
     pub client_id: u64,       // globally unique identifier for an authenticated client
     pub timeout_seconds: i32, // timeout in seconds. negative values disable timeout (dev only)
+    #[cfg(target_arch = "xtensa")]
+    pub server_addresses: [Option<SocketAddr>; 1],
+    #[cfg(not(target_arch = "xtensa"))]
     pub server_addresses: [Option<SocketAddr>; 32],
     pub client_to_server_key: [u8; NETCODE_KEY_BYTES],
     pub server_to_client_key: [u8; NETCODE_KEY_BYTES],
@@ -200,7 +203,7 @@ impl PrivateConnectToken {
             return Err(TokenGenerationError::NoServerAddressAvailable);
         }
 
-        let mut server_addresses_arr = [None; 32];
+        let mut server_addresses_arr = [None; SERVER_ADDRESSES_COUNT];
         for (i, addr) in server_addresses.into_iter().enumerate() {
             server_addresses_arr[i] = Some(addr);
         }
@@ -292,7 +295,7 @@ impl PrivateConnectToken {
     }
 }
 
-fn write_server_adresses(writer: &mut impl io::Write, server_addresses: &[Option<SocketAddr>; 32]) -> Result<(), io::Error> {
+fn write_server_adresses(writer: &mut impl io::Write, server_addresses: &[Option<SocketAddr>; SERVER_ADDRESSES_COUNT]) -> Result<(), io::Error> {
     let num_server_addresses: u32 = server_addresses.iter().filter(|a| a.is_some()).count() as u32;
     writer.write_all(&num_server_addresses.to_le_bytes())?;
 
@@ -317,8 +320,8 @@ fn write_server_adresses(writer: &mut impl io::Write, server_addresses: &[Option
     Ok(())
 }
 
-fn read_server_addresses(src: &mut impl io::Read) -> Result<[Option<SocketAddr>; 32], io::Error> {
-    let mut server_addresses = [None; 32];
+fn read_server_addresses(src: &mut impl io::Read) -> Result<[Option<SocketAddr>; SERVER_ADDRESSES_COUNT], io::Error> {
+    let mut server_addresses = [None; SERVER_ADDRESSES_COUNT];
     let num_server_addresses = read_u32(src)? as usize;
     for server_address in server_addresses.iter_mut().take(num_server_addresses) {
         let host_type = read_u8(src)?;

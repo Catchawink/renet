@@ -68,3 +68,8 @@ const NETCODE_CONNECT_TOKEN_XNONCE_BYTES: usize = 24;
 
 const NETCODE_ADDITIONAL_DATA_SIZE: usize = 13 + 8 + 8;
 const NETCODE_SEND_RATE: Duration = Duration::from_millis(250);
+
+#[cfg(target_arch = "xtensa")]
+pub const SERVER_ADDRESSES_COUNT: usize = 1;
+#[cfg(not(target_arch = "xtensa"))]
+pub const SERVER_ADDRESSES_COUNT: usize = 16;
