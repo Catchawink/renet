@@ -88,6 +88,10 @@ impl fmt::Display for DisconnectReason {
 impl Error for DisconnectReason {}
 
 impl NetcodeClient {
+    pub fn dummy_func(current_time: Duration, authentication: ClientAuthentication) {
+
+    }
+
     pub fn new(current_time: Duration, authentication: ClientAuthentication) -> Result<Self, NetcodeError> {
         let connect_token: ConnectToken = match authentication {
             ClientAuthentication::Unsecure {
