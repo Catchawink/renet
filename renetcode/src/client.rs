@@ -88,14 +88,54 @@ impl fmt::Display for DisconnectReason {
 impl Error for DisconnectReason {}
 
 impl NetcodeClient {
-    pub fn dummy_func(){
+    pub fn dummy_func(current_time: Duration, authentication: ClientAuthentication){
+        let dummy = authentication;
     }
 
-    pub fn dummy_func_1() -> Result<(), NetcodeError> {
+    pub fn dummy_func_1(current_time: Duration, authentication: ClientAuthentication) -> Result<(), NetcodeError> {
+        let connect_token: ConnectToken = match authentication {
+            ClientAuthentication::Unsecure {
+                server_addr,
+                protocol_id,
+                client_id,
+                user_data,
+            } => ConnectToken::generate(
+                current_time,
+                protocol_id,
+                300,
+                client_id,
+                15,
+                vec![server_addr],
+                user_data.as_ref(),
+                &[0; NETCODE_KEY_BYTES],
+            )?,
+            ClientAuthentication::Secure { connect_token } => connect_token,
+        };
         Ok(())
     }
 
     pub fn dummy_func_2(current_time: Duration, authentication: ClientAuthentication) -> Result<(), NetcodeError> {
+        let connect_token: ConnectToken = match authentication {
+            ClientAuthentication::Unsecure {
+                server_addr,
+                protocol_id,
+                client_id,
+                user_data,
+            } => ConnectToken::generate(
+                current_time,
+                protocol_id,
+                300,
+                client_id,
+                15,
+                vec![server_addr],
+                user_data.as_ref(),
+                &[0; NETCODE_KEY_BYTES],
+            )?,
+            ClientAuthentication::Secure { connect_token } => connect_token,
+        };
+
+        let server_addr = connect_token.server_addresses[0];
+
         Ok(())
     }
     
