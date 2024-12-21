@@ -137,6 +137,7 @@ impl NetcodeClient {
 
     }
 
+    // problems start here, using connect_token
     pub fn dummy_func_3(current_time: Duration, authentication: ClientAuthentication) -> Result<(), NetcodeError> {
         match authentication {
             ClientAuthentication::Unsecure {
@@ -170,7 +171,7 @@ impl NetcodeClient {
                 user_data.as_ref(),
                 &[0; NETCODE_KEY_BYTES],
             )?,
-            ClientAuthentication::Secure { connect_token } => connect_token,
+            ClientAuthentication::Secure { connect_token } => connect_token.clone(),
         };
 
         Ok(())
