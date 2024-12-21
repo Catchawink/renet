@@ -25,6 +25,12 @@ pub struct DummyConnectToken {
     pub protocol_id: u64,
     pub create_timestamp: u64,
     pub expire_timestamp: u64,
+    pub xnonce: [u8; NETCODE_CONNECT_TOKEN_XNONCE_BYTES],
+    pub server_addresses: [Option<SocketAddr>; 32],
+    pub client_to_server_key: [u8; NETCODE_KEY_BYTES],
+    pub server_to_client_key: [u8; NETCODE_KEY_BYTES],
+    //pub private_data: [u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
+    pub timeout_seconds: i32,
 }
 
 /// A public connect token that the client receives to start connecting to the server.
