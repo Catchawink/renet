@@ -64,6 +64,9 @@ pub const NETCODE_USER_DATA_BYTES: usize = 256;
 const NETCODE_CHALLENGE_TOKEN_BYTES: usize = 1;
 #[cfg(not(target_arch = "xtensa"))]
 const NETCODE_CHALLENGE_TOKEN_BYTES: usize = 300;
+#[cfg(target_arch = "xtensa")]
+const NETCODE_CONNECT_TOKEN_XNONCE_BYTES: usize = 1;
+#[cfg(not(target_arch = "xtensa"))]
 const NETCODE_CONNECT_TOKEN_XNONCE_BYTES: usize = 24;
 
 const NETCODE_ADDITIONAL_DATA_SIZE: usize = 13 + 8 + 8;

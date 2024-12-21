@@ -2,7 +2,7 @@ use chacha20poly1305::aead::rand_core::TryRngCore;
 use chacha20poly1305::aead::{rand_core::RngCore, OsRng};
 use chacha20poly1305::{AeadInPlace, ChaCha20Poly1305, Error as CryptoError, Key, KeyInit, Nonce, Tag, XChaCha20Poly1305, XNonce};
 
-use crate::NETCODE_MAC_BYTES;
+use crate::{NETCODE_CONNECT_TOKEN_XNONCE_BYTES, NETCODE_MAC_BYTES};
 
 pub fn dencrypted_in_place(buffer: &mut [u8], sequence: u64, private_key: &[u8; 32], aad: &[u8]) -> Result<(), CryptoError> {
     let mut nonce = [0; 12];
@@ -17,7 +17,7 @@ pub fn dencrypted_in_place(buffer: &mut [u8], sequence: u64, private_key: &[u8; 
     cipher.decrypt_in_place_detached(&nonce, aad, buffer, tag)
 }
 
-pub fn dencrypted_in_place_xnonce(buffer: &mut [u8], xnonce: &[u8; 24], private_key: &[u8; 32], aad: &[u8]) -> Result<(), CryptoError> {
+pub fn dencrypted_in_place_xnonce(buffer: &mut [u8], xnonce: &[u8; NETCODE_CONNECT_TOKEN_XNONCE_BYTES], private_key: &[u8; 32], aad: &[u8]) -> Result<(), CryptoError> {
     let xnonce = XNonce::from_slice(xnonce);
     let (buffer, tag) = buffer.split_at_mut(buffer.len() - NETCODE_MAC_BYTES);
     let tag = Tag::from_slice(tag);
@@ -42,7 +42,7 @@ pub fn encrypt_in_place(buffer: &mut [u8], sequence: u64, key: &[u8; 32], aad: &
     Ok(())
 }
 
-pub fn encrypt_in_place_xnonce(buffer: &mut [u8], xnonce: &[u8; 24], key: &[u8; 32], aad: &[u8]) -> Result<(), CryptoError> {
+pub fn encrypt_in_place_xnonce(buffer: &mut [u8], xnonce: &[u8; NETCODE_CONNECT_TOKEN_XNONCE_BYTES], key: &[u8; 32], aad: &[u8]) -> Result<(), CryptoError> {
     let (buffer, buffer_tag) = buffer.split_at_mut(buffer.len() - NETCODE_MAC_BYTES);
 
     let xnonce = XNonce::from_slice(xnonce);

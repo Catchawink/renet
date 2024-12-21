@@ -80,6 +80,7 @@ pub struct NetcodeClient {
     max_clients: u32,
     client_index: u32,
     send_rate: Duration,
+    #[cfg(not(target_arch = "xtensa"))]
     replay_protection: ReplayProtection,
     out: [u8; NETCODE_MAX_PACKET_BYTES],
 }
@@ -240,6 +241,7 @@ impl NetcodeClient {
             send_rate: NETCODE_SEND_RATE,
             challenge_token_data: [0u8; NETCODE_CHALLENGE_TOKEN_BYTES],
             connect_token,
+            #[cfg(not(target_arch = "xtensa"))]
             replay_protection: ReplayProtection::new(),
             out: [0u8; NETCODE_MAX_PACKET_BYTES],
         })
@@ -309,6 +311,9 @@ impl NetcodeClient {
             buffer,
             self.connect_token.protocol_id,
             Some(&self.connect_token.server_to_client_key),
+            #[cfg(target_arch = "xtensa")]
+            None,
+            #[cfg(not(target_arch = "xtensa"))]
             Some(&mut self.replay_protection),
         ) {
             Ok((_, packet)) => packet,
