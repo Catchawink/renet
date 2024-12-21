@@ -217,8 +217,6 @@ impl PrivateConnectToken {
     }
 
     fn read(src: &mut impl io::Read) -> Result<Self, io::Error> {
-        todo!();
-
         let client_id = read_u64(src)?;
         let timeout_seconds = read_i32(src)?;
         let server_addresses = read_server_addresses(src)?;
@@ -228,7 +226,7 @@ impl PrivateConnectToken {
         let mut server_to_client_key = [0u8; 32];
         src.read_exact(&mut server_to_client_key)?;
 
-        let mut user_data = [0u8; 256];
+        let mut user_data = [0u8; NETCODE_USER_DATA_BYTES];
         src.read_exact(&mut user_data)?;
 
         Ok(Self {
