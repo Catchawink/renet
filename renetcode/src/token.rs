@@ -29,9 +29,6 @@ pub struct ConnectToken {
     pub create_timestamp: u64,
     pub expire_timestamp: u64,
     pub xnonce: [u8; NETCODE_CONNECT_TOKEN_XNONCE_BYTES],
-    #[cfg(target_arch = "xtensa")]
-    pub server_addresses: [Option<SocketAddr>; 1],
-    #[cfg(not(target_arch = "xtensa"))]
     pub server_addresses: [Option<SocketAddr>; 32],
     pub client_to_server_key: [u8; NETCODE_KEY_BYTES],
     pub server_to_client_key: [u8; NETCODE_KEY_BYTES],
