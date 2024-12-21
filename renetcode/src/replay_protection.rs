@@ -1,10 +1,4 @@
-#[cfg(target_arch = "xtensa")]
-const NETCODE_REPLAY_BUFFER_SIZE: usize = 1;
-#[cfg(not(target_arch = "xtensa"))]
 const NETCODE_REPLAY_BUFFER_SIZE: usize = 256;
-#[cfg(target_arch = "xtensa")]
-const EMPTY: u64 = 0;
-#[cfg(not(target_arch = "xtensa"))]
 const EMPTY: u64 = u64::MAX;
 
 #[derive(Debug, Clone)]
