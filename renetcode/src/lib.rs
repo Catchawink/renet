@@ -25,11 +25,11 @@ mod serialize;
 mod server;
 mod token;
 
-pub use client::{ClientAuthentication, DisconnectReason, NetcodeClient};
+pub use client::{DummyClientAuthentication, ClientAuthentication, DisconnectReason, NetcodeClient};
 pub use crypto::generate_random_bytes;
 pub use error::NetcodeError;
 pub use server::{NetcodeServer, ServerAuthentication, ServerConfig, ServerResult};
-pub use token::{ConnectToken, TokenGenerationError};
+pub use token::{DummyConnectToken, ConnectToken, TokenGenerationError};
 
 use std::time::Duration;
 
