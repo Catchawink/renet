@@ -51,7 +51,7 @@ pub enum Packet<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ChallengeToken {
     pub client_id: u64,
-    pub user_data: [u8; 256],
+    pub user_data: [u8; NETCODE_USER_DATA_BYTES],
 }
 
 impl PacketType {
