@@ -17,7 +17,8 @@ pub enum DisconnectReason {
     DisconnectedByServer,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(not(target_arch = "xtensa"), derive(Debug))]
+#[derive(PartialEq, Eq)]
 enum ClientState {
     Disconnected(DisconnectReason),
     SendingConnectionRequest,
@@ -41,7 +42,7 @@ pub enum DummyClientAuthentication {
 }
 
 /// Configuration to establish a secure or unsecure connection with the server.
-#[derive(Debug, Clone)]
+#[cfg_attr(not(target_arch = "xtensa"), Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
 pub enum ClientAuthentication {
     /// Establishes a safe connection with the server using the [crate::ConnectToken].
@@ -63,7 +64,7 @@ pub enum ClientAuthentication {
 /// encrypted packets from the server.
 /// The client is agnostic from the transport layer, only consuming and generating bytes
 /// that can be transported in any way desired.
-#[derive(Debug)]
+#[cfg_attr(not(target_arch = "xtensa"), derive(Debug))]
 pub struct NetcodeClient {
     state: ClientState,
     client_id: u64,
@@ -493,6 +494,7 @@ impl NetcodeClient {
     }
 }
 
+#[cfg(not(target_arch = "xtensa"))]
 #[cfg(test)]
 mod tests {
     use crate::{crypto::generate_random_bytes, NETCODE_MAX_PACKET_BYTES};
