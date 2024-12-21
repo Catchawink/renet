@@ -104,7 +104,10 @@ impl NetcodeClient {
         };
     }
     
+    
     pub fn dummy_func_1(current_time: Duration, authentication: ClientAuthentication){
+        let mut _connect_token: Option<ConnectToken> = None;
+
         match authentication {
             ClientAuthentication::Unsecure {
                 server_addr,
@@ -115,7 +118,7 @@ impl NetcodeClient {
            
             },
             ClientAuthentication::Secure { connect_token } => {
-                let x = connect_token;
+                _connect_token = Some(connect_token);
             },
         };
     }
