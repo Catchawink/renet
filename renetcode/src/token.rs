@@ -19,6 +19,14 @@ use chacha20poly1305::aead::Error as CryptoError;
 /// How the client receives ConnectToken is up to you, could be from a matchmaking
 /// system or from a call to a REST API as an example.
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DummyConnectToken {
+
+}
+
+/// A public connect token that the client receives to start connecting to the server.
+/// How the client receives ConnectToken is up to you, could be from a matchmaking
+/// system or from a call to a REST API as an example.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConnectToken {
     // NOTE: On the netcode standard the client id is not available in the public part of the
     // ConnectToken. But having it acessible here makes it easier to consume the token, and the

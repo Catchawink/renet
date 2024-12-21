@@ -1,7 +1,7 @@
 use std::{error::Error, fmt, net::SocketAddr, time::Duration};
 
 use crate::{
-    packet::Packet, replay_protection::ReplayProtection, token::ConnectToken, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES,
+    packet::Packet, replay_protection::ReplayProtection, token::{ConnectToken, DummyConnectToken}, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES,
     NETCODE_KEY_BYTES, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_SEND_RATE, NETCODE_USER_DATA_BYTES,
 };
 
@@ -23,6 +23,21 @@ enum ClientState {
     SendingConnectionRequest,
     SendingConnectionResponse,
     Connected,
+}
+
+/// Configuration to establish a secure or unsecure connection with the server.
+#[derive(Debug, Clone)]
+//#[allow(clippy::large_enum_variant)]
+pub enum DummyClientAuthentication {
+    /// Establishes a safe connection with the server using the [crate::ConnectToken].
+    ///
+    /// See also [crate::ServerAuthentication::Secure]
+    Secure { connect_token: DummyConnectToken },
+    /// Establishes an unsafe connection with the server, useful for testing and prototyping.
+    ///
+    /// See also [crate::ServerAuthentication::Unsecure]
+    Unsecure {
+    },
 }
 
 /// Configuration to establish a secure or unsecure connection with the server.
@@ -166,24 +181,13 @@ impl NetcodeClient {
         Ok(())
     }
     
-    pub fn dummy_func_4(current_time: Duration, authentication: ClientAuthentication) -> Result<(), NetcodeError> {
-        let connect_token: ConnectToken = match authentication {
-            ClientAuthentication::Unsecure {
-                server_addr,
-                protocol_id,
-                client_id,
-                user_data,
-            } => ConnectToken::generate(
-                current_time,
-                protocol_id,
-                300,
-                client_id,
-                15,
-                vec![server_addr],
-                user_data.as_ref(),
-                &[0; NETCODE_KEY_BYTES],
-            )?,
-            ClientAuthentication::Secure { connect_token } => connect_token.clone(),
+    pub fn dummy_func_4(current_time: Duration, authentication: DummyClientAuthentication) -> Result<(), NetcodeError> {
+        let connect_token: DummyConnectToken = match authentication {
+            DummyClientAuthentication::Unsecure {
+            } => {
+                DummyConnectToken {}
+            }
+            DummyClientAuthentication::Secure { connect_token } => connect_token,
         };
 
         Ok(())
