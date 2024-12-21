@@ -185,7 +185,7 @@ impl NetcodeClient {
         let connect_token: DummyConnectToken = match authentication {
             DummyClientAuthentication::Unsecure {
             } => {
-                DummyConnectToken {}
+                DummyConnectToken::default()
             }
             DummyClientAuthentication::Secure { connect_token } => connect_token,
         };

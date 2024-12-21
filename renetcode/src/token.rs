@@ -18,9 +18,13 @@ use chacha20poly1305::aead::Error as CryptoError;
 /// A public connect token that the client receives to start connecting to the server.
 /// How the client receives ConnectToken is up to you, could be from a matchmaking
 /// system or from a call to a REST API as an example.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct DummyConnectToken {
-
+    pub client_id: u64,
+    pub version_info: [u8; 13],
+    pub protocol_id: u64,
+    pub create_timestamp: u64,
+    pub expire_timestamp: u64,
 }
 
 /// A public connect token that the client receives to start connecting to the server.
