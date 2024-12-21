@@ -140,7 +140,7 @@ impl NetcodeClient {
                     vec![server_addr],
                     user_data.as_ref(),
                     &[0; NETCODE_KEY_BYTES],
-                )?
+                ).unwrap()
             },
             ClientAuthentication::Secure { connect_token } => {
                 connect_token
