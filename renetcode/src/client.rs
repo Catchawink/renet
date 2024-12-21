@@ -124,17 +124,26 @@ impl NetcodeClient {
     }
 
     pub fn dummy_func_2(current_time: Duration, authentication: ClientAuthentication) {
-        match authentication {
+        let connect_token = match authentication {
             ClientAuthentication::Unsecure {
                 server_addr,
                 protocol_id,
                 client_id,
                 user_data,
             } => {
-           
+                ConnectToken::generate(
+                    current_time,
+                    protocol_id,
+                    300,
+                    client_id,
+                    15,
+                    vec![server_addr],
+                    user_data.as_ref(),
+                    &[0; NETCODE_KEY_BYTES],
+                )?
             },
             ClientAuthentication::Secure { connect_token } => {
-                let x = connect_token.clone();
+                connect_token
             },
         };
 
