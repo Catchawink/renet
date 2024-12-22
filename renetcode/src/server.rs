@@ -242,6 +242,7 @@ impl NetcodeServer {
         xnonce: [u8; NETCODE_CONNECT_TOKEN_XNONCE_BYTES],
         data: &[u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
     ) -> Result<ServerResult<'a, '_>, NetcodeError> {
+        println!("Connection request expire timestamp: {}", expire_timestamp);
         if version_info != *NETCODE_VERSION_INFO {
             return Err(NetcodeError::InvalidVersion);
         }
@@ -465,7 +466,6 @@ impl NetcodeServer {
                     xnonce,
                     version_info,
                 } => {
-                    println!("Connection request expire timestamp: {}", expire_timestamp);
                     #[cfg(feature = "static_alloc")]
                     let data = PRIVATE_DATA.lock().unwrap();
                     return self.handle_connection_request(addr, version_info, protocol_id, expire_timestamp, xnonce, &data);
