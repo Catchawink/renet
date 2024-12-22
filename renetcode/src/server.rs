@@ -18,6 +18,7 @@ struct Connection {
     state: ConnectionState,
     send_key: [u8; NETCODE_KEY_BYTES],
     receive_key: [u8; NETCODE_KEY_BYTES],
+    #[cfg(not(feature = "static_alloc"))]
     user_data: [u8; NETCODE_USER_DATA_BYTES],
     addr: SocketAddr,
     last_packet_received_time: Duration,
@@ -315,7 +316,7 @@ impl NetcodeServer {
         self.challenge_sequence += 1;
         let packet = Packet::generate_challenge(
             connect_token.client_id,
-            &connect_token.user_data,
+            &connect_token.get_user_data(),
             self.challenge_sequence,
             &self.challenge_key,
         )?;

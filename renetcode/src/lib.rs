@@ -22,12 +22,14 @@ mod error;
 mod packet;
 mod replay_protection;
 mod serialize;
+#[cfg(not(feature = "static_alloc"))]
 mod server;
 mod token;
 
 pub use client::{ClientAuthentication, DisconnectReason, NetcodeClient};
 pub use crypto::generate_random_bytes;
 pub use error::NetcodeError;
+#[cfg(not(feature = "static_alloc"))]
 pub use server::{NetcodeServer, ServerAuthentication, ServerConfig, ServerResult};
 pub use token::{ConnectToken, TokenGenerationError};
 

@@ -1,14 +1,20 @@
 use std::{error::Error, fmt};
 
 mod client;
+#[cfg(not(feature = "static_alloc"))]
 mod server;
 
 pub use client::*;
+#[cfg(not(feature = "static_alloc"))]
 pub use server::*;
 
 pub use renetcode::{
-    generate_random_bytes, ClientAuthentication, ConnectToken, DisconnectReason as NetcodeDisconnectReason, NetcodeError,
-    ServerAuthentication, ServerConfig, TokenGenerationError, NETCODE_KEY_BYTES, NETCODE_USER_DATA_BYTES,
+    generate_random_bytes, ClientAuthentication, ConnectToken, DisconnectReason as NetcodeDisconnectReason, NetcodeError, TokenGenerationError, NETCODE_KEY_BYTES, NETCODE_USER_DATA_BYTES,
+};
+
+#[cfg(not(feature = "static_alloc"))]
+pub use renetcode::{
+    ServerAuthentication, ServerConfig,
 };
 
 #[derive(Debug)]

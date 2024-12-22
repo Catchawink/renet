@@ -17,6 +17,7 @@ use lazy_static::lazy_static;
 #[cfg(feature = "static_alloc")]
 lazy_static! {
     pub static ref PRIVATE_DATA: Arc<Mutex<[u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES]>> = Arc::new(Mutex::new([0u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES]));
+    pub static ref USER_DATA: Arc<Mutex<[u8; NETCODE_USER_DATA_BYTES]>> = Arc::new(Mutex::new([0u8; NETCODE_USER_DATA_BYTES]));
     pub static ref SERVER_ADDRESSES: Arc<Mutex<[Option<SocketAddr>; SERVER_ADDRESSES_COUNT]>> = Arc::new(Mutex::new([None; SERVER_ADDRESSES_COUNT]));
 }
 
@@ -51,6 +52,7 @@ pub(crate) struct PrivateConnectToken {
     pub server_addresses: [Option<SocketAddr>; SERVER_ADDRESSES_COUNT],
     pub client_to_server_key: [u8; NETCODE_KEY_BYTES],
     pub server_to_client_key: [u8; NETCODE_KEY_BYTES],
+    #[cfg(not(feature = "static_alloc"))]
     pub user_data: [u8; NETCODE_USER_DATA_BYTES], // user defined data specific to this protocol id
 }
 
@@ -91,6 +93,7 @@ impl fmt::Display for TokenGenerationError {
 }
 
 impl ConnectToken {
+
     #[cfg(feature = "static_alloc")]
     pub fn get_server_addresses<'a>(&self) -> SERVER_ADRESSES_TYPE<'a> {
         SERVER_ADDRESSES.lock().unwrap()
@@ -208,6 +211,16 @@ impl ConnectToken {
 
 impl PrivateConnectToken {
     #[cfg(feature = "static_alloc")]
+    pub fn get_user_data<'a>(&self) -> USER_DATA_TYPE<'a> {
+        USER_DATA.lock().unwrap()
+    }
+
+    #[cfg(not(feature = "static_alloc"))]
+    pub fn get_user_data(&self) -> USER_DATA_TYPE {
+        self.user_data
+    }
+
+    #[cfg(feature = "static_alloc")]
     pub fn get_server_addresses<'a>(&self) -> SERVER_ADRESSES_TYPE<'a> {
         SERVER_ADDRESSES.lock().unwrap()
     }
@@ -253,6 +266,7 @@ impl PrivateConnectToken {
             server_addresses: server_addresses_arr,
             client_to_server_key,
             server_to_client_key,
+            #[cfg(not(feature = "static_alloc"))]
             user_data,
         })
     }
@@ -263,7 +277,7 @@ impl PrivateConnectToken {
         write_server_adresses(writer, &self.get_server_addresses())?;
         writer.write_all(&self.client_to_server_key)?;
         writer.write_all(&self.server_to_client_key)?;
-        writer.write_all(&self.user_data)?;
+        writer.write_all(&self.get_user_data().as_ref())?;
 
         Ok(())
     }
@@ -281,8 +295,12 @@ impl PrivateConnectToken {
         let mut server_to_client_key = [0u8; 32];
         src.read_exact(&mut server_to_client_key)?;
 
+        #[cfg(feature = "static_alloc")]
+        let mut user_data = USER_DATA.lock().unwrap();
+        #[cfg(not(feature = "static_alloc"))]
         let mut user_data = [0u8; NETCODE_USER_DATA_BYTES];
-        src.read_exact(&mut user_data)?;
+
+        src.read_exact(&mut user_data.as_mut())?;
 
         Ok(Self {
             client_id,
@@ -291,6 +309,7 @@ impl PrivateConnectToken {
             server_addresses,
             client_to_server_key,
             server_to_client_key,
+            #[cfg(not(feature = "static_alloc"))]
             user_data,
         })
     }
@@ -354,6 +373,11 @@ fn write_server_adresses(writer: &mut impl io::Write, server_addresses: &[Option
 
     Ok(())
 }
+
+#[cfg(feature = "static_alloc")]
+type USER_DATA_TYPE<'a> = MutexGuard<'a, [u8; NETCODE_USER_DATA_BYTES]>;
+#[cfg(not(feature = "static_alloc"))]
+type USER_DATA_TYPE = [u8; NETCODE_USER_DATA_BYTES];
 
 #[cfg(feature = "static_alloc")]
 type SERVER_ADRESSES_TYPE<'a> = MutexGuard<'a, [Option<SocketAddr>; SERVER_ADDRESSES_COUNT]>;
