@@ -113,6 +113,20 @@ impl NetcodeClient {
                 client_id,
                 user_data,
             } => {
+                _connect_token = Some(ConnectToken {
+                    client_id: 0,
+                    version_info: [0u8; 13],
+                    protocol_id: 0,
+                    create_timestamp: 0,
+                    expire_timestamp: 0,
+                    xnonce: [0u8; 24],
+                    server_addresses: std::array::from_fn(|i| if i == 0 { Some(server_addr) } else { None }),
+                    client_to_server_key: [0u8; 32],
+                    server_to_client_key: [0u8; 32],
+                    //private_data:  [0u8; 1024],
+                    timeout_seconds: 0,
+                });
+                /*
                 _connect_token = Some(ConnectToken::generate(
                     current_time,
                     protocol_id,
@@ -122,7 +136,7 @@ impl NetcodeClient {
                     vec![server_addr],
                     user_data.as_ref(),
                     &[0; NETCODE_KEY_BYTES],
-                )?);
+                )?); */
             },
             ClientAuthentication::Secure { connect_token } => {
                 _connect_token = Some(connect_token);
