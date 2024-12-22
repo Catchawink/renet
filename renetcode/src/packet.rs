@@ -108,6 +108,8 @@ impl<'a> Packet<'a> {
     }
 
     pub fn connection_request_from_token(connect_token: &ConnectToken) -> Self {
+        println!("Sending connection request. Expire timestamp: {}", connect_token.expire_timestamp);
+        
         Packet::ConnectionRequest {
             xnonce: connect_token.xnonce,
             version_info: *NETCODE_VERSION_INFO,
