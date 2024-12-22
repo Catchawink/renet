@@ -230,6 +230,9 @@ impl PrivateConnectToken {
             return Err(TokenGenerationError::NoServerAddressAvailable);
         }
 
+        #[cfg(feature = "static_alloc")]
+        let mut server_addresses_arr = SERVER_ADDRESSES.lock().unwrap();
+        #[cfg(not(feature = "static_alloc"))]
         let mut server_addresses_arr = [None; SERVER_ADDRESSES_COUNT];
         for (i, addr) in server_addresses.into_iter().enumerate() {
             server_addresses_arr[i] = Some(addr);
