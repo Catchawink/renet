@@ -10,6 +10,13 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+replay_protection = []
+static_alloc = ["once_mut", "lazy_static"]
+
 [dependencies]
 chacha20poly1305 = "0.11.0-pre.2"
 log = "0.4.17"
+once_mut = { version = "0.1.1", optional = true }
+lazy_static = { version = "1.4", optional = true }

@@ -1,9 +1,18 @@
 use std::{error::Error, fmt, net::SocketAddr, time::Duration};
 
 use crate::{
-    packet::Packet, replay_protection::ReplayProtection, token::{ConnectToken, DummyConnectToken}, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES,
+    packet::Packet, replay_protection::ReplayProtection, token::ConnectToken, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES,
     NETCODE_KEY_BYTES, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_SEND_RATE, NETCODE_USER_DATA_BYTES,
 };
+
+
+#[cfg(feature = "static_alloc")]
+use once_mut::once_mut;
+
+#[cfg(feature = "static_alloc")]
+once_mut! {
+    pub static mut OUT: [u8; NETCODE_MAX_PACKET_BYTES] = [0u8; NETCODE_MAX_PACKET_BYTES];
+}
 
 /// The reason why a client is in error state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,21 +33,6 @@ enum ClientState {
     SendingConnectionRequest,
     SendingConnectionResponse,
     Connected,
-}
-
-/// Configuration to establish a secure or unsecure connection with the server.
-#[derive(Debug, Clone)]
-//#[allow(clippy::large_enum_variant)]
-pub enum DummyClientAuthentication {
-    /// Establishes a safe connection with the server using the [crate::ConnectToken].
-    ///
-    /// See also [crate::ServerAuthentication::Secure]
-    Secure { connect_token: DummyConnectToken },
-    /// Establishes an unsafe connection with the server, useful for testing and prototyping.
-    ///
-    /// See also [crate::ServerAuthentication::Unsecure]
-    Unsecure {
-    },
 }
 
 /// Configuration to establish a secure or unsecure connection with the server.
@@ -83,6 +77,9 @@ pub struct NetcodeClient {
     send_rate: Duration,
     #[cfg(not(target_arch = "xtensa"))]
     replay_protection: ReplayProtection,
+    #[cfg(feature = "static_alloc")]
+    out: &'static mut [u8; NETCODE_MAX_PACKET_BYTES],
+    #[cfg(not(feature = "static_alloc"))]
     out: [u8; NETCODE_MAX_PACKET_BYTES],
 }
 
@@ -105,96 +102,6 @@ impl fmt::Display for DisconnectReason {
 impl Error for DisconnectReason {}
 
 impl NetcodeClient {
-    pub fn dummy_func(current_time: Duration, authentication: ClientAuthentication) {
-        match authentication {
-            ClientAuthentication::Unsecure {
-                server_addr,
-                protocol_id,
-                client_id,
-                user_data,
-            } => {
-           
-            },
-            ClientAuthentication::Secure { connect_token } => {
-
-            },
-        };
-    }
-    
-    
-    pub fn dummy_func_1(current_time: Duration, authentication: ClientAuthentication){
-        let mut _connect_token: Option<ConnectToken> = None;
-
-        match authentication {
-            ClientAuthentication::Unsecure {
-                server_addr,
-                protocol_id,
-                client_id,
-                user_data,
-            } => {
-           
-            },
-            ClientAuthentication::Secure { connect_token } => {
-                _connect_token = Some(connect_token);
-            },
-        };
-    }
-
-    pub fn dummy_func_2(current_time: Duration, authentication: ClientAuthentication) {
-        let connect_token = match authentication {
-            ClientAuthentication::Unsecure {
-                server_addr,
-                protocol_id,
-                client_id,
-                user_data,
-            } => {
-                ConnectToken::generate(
-                    current_time,
-                    protocol_id,
-                    300,
-                    client_id,
-                    15,
-                    vec![server_addr],
-                    user_data.as_ref(),
-                    &[0; NETCODE_KEY_BYTES],
-                ).unwrap()
-            },
-            ClientAuthentication::Secure { connect_token } => {
-                connect_token
-            },
-        };
-
-    }
-
-    // problems start here, using connect_token
-    pub fn dummy_func_3(current_time: Duration, authentication: ClientAuthentication) -> Result<(), NetcodeError> {
-        match authentication {
-            ClientAuthentication::Unsecure {
-                server_addr,
-                protocol_id,
-                client_id,
-                user_data,
-            } => {
-                todo!()
-            },
-            ClientAuthentication::Secure { connect_token } => connect_token,
-        };
-
-        Ok(())
-    }
-    
-    pub fn dummy_func_4(current_time: Duration, authentication: DummyClientAuthentication) -> Result<(), NetcodeError> {
-        let connect_token: DummyConnectToken = match authentication {
-            DummyClientAuthentication::Unsecure {
-            } => {
-                DummyConnectToken::default()
-            }
-            DummyClientAuthentication::Secure { connect_token } => connect_token,
-        };
-
-        Ok(())
-    }
-
     pub fn new(current_time: Duration, authentication: ClientAuthentication) -> Result<Self, NetcodeError> {
 
         let mut _connect_token: Option<ConnectToken> = None;
@@ -242,8 +149,11 @@ impl NetcodeClient {
             send_rate: NETCODE_SEND_RATE,
             challenge_token_data: [0u8; NETCODE_CHALLENGE_TOKEN_BYTES],
             connect_token,
-            #[cfg(not(target_arch = "xtensa"))]
+            #[cfg(feature = "replay_protection")]
             replay_protection: ReplayProtection::new(),
+            #[cfg(feature = "static_alloc")]
+            out: OUT.take().unwrap(),
+            #[cfg(not(feature = "static_alloc"))]
             out: [0u8; NETCODE_MAX_PACKET_BYTES],
         })
     }
@@ -296,7 +206,7 @@ impl NetcodeClient {
         self.state = ClientState::Disconnected(DisconnectReason::DisconnectedByClient);
         let packet = Packet::Disconnect;
         let len = packet.encode(
-            &mut self.out,
+            self.out.as_mut(),
             self.connect_token.protocol_id,
             Some((self.sequence, &self.connect_token.client_to_server_key)),
         )?;
@@ -378,7 +288,7 @@ impl NetcodeClient {
 
         let packet = Packet::Payload(payload);
         let len = packet.encode(
-            &mut self.out,
+            self.out.as_mut(),
             self.connect_token.protocol_id,
             Some((self.sequence, &self.connect_token.client_to_server_key)),
         )?;
@@ -480,7 +390,7 @@ impl NetcodeClient {
         };
 
         let result = packet.encode(
-            &mut self.out,
+            self.out.as_mut(),
             self.connect_token.protocol_id,
             Some((self.sequence, &self.connect_token.client_to_server_key)),
         );

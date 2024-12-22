@@ -25,11 +25,11 @@ mod serialize;
 mod server;
 mod token;
 
-pub use client::{DummyClientAuthentication, ClientAuthentication, DisconnectReason, NetcodeClient};
+pub use client::{ClientAuthentication, DisconnectReason, NetcodeClient};
 pub use crypto::generate_random_bytes;
 pub use error::NetcodeError;
 pub use server::{NetcodeServer, ServerAuthentication, ServerConfig, ServerResult};
-pub use token::{DummyConnectToken, ConnectToken, TokenGenerationError};
+pub use token::{ConnectToken, TokenGenerationError};
 
 use std::time::Duration;
 
@@ -46,7 +46,7 @@ const NETCODE_CONNECT_TOKEN_PRIVATE_BYTES: usize = 1024;
 const NETCODE_CONNECT_TOKEN_PRIVATE_BYTES: usize = 1024;
 /// The maximum number of bytes that a netcode packet can contain.
 #[cfg(target_arch = "xtensa")]
-pub const NETCODE_MAX_PACKET_BYTES: usize = 512;
+pub const NETCODE_MAX_PACKET_BYTES: usize = 1400;
 #[cfg(not(target_arch = "xtensa"))]
 pub const NETCODE_MAX_PACKET_BYTES: usize = 1400;
 /// The maximum number of bytes that a payload can have when generating a payload packet.

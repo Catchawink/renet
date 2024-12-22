@@ -4,7 +4,7 @@ use crate::{
     crypto::generate_random_bytes,
     packet::{ChallengeToken, Packet},
     replay_protection::ReplayProtection,
-    token::PrivateConnectToken,
+    token::{PrivateConnectToken, PRIVATE_DATA},
     NetcodeError, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES, NETCODE_CONNECT_TOKEN_XNONCE_BYTES, NETCODE_KEY_BYTES, NETCODE_MAC_BYTES,
     NETCODE_MAX_CLIENTS, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_MAX_PENDING_CLIENTS, NETCODE_SEND_RATE,
     NETCODE_USER_DATA_BYTES, NETCODE_VERSION_INFO,
@@ -239,7 +239,7 @@ impl NetcodeServer {
         protocol_id: u64,
         expire_timestamp: u64,
         xnonce: [u8; NETCODE_CONNECT_TOKEN_XNONCE_BYTES],
-        data: [u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
+        data: &[u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
     ) -> Result<ServerResult<'a, '_>, NetcodeError> {
         if version_info != *NETCODE_VERSION_INFO {
             return Err(NetcodeError::InvalidVersion);
@@ -456,11 +456,14 @@ impl NetcodeServer {
                 Packet::ConnectionRequest {
                     protocol_id,
                     expire_timestamp,
+                    #[cfg(not(feature = "static_alloc"))]
                     data,
                     xnonce,
                     version_info,
                 } => {
-                    return self.handle_connection_request(addr, version_info, protocol_id, expire_timestamp, xnonce, data);
+                    #[cfg(feature = "static_alloc")]
+                    let data = PRIVATE_DATA.lock().unwrap();
+                    return self.handle_connection_request(addr, version_info, protocol_id, expire_timestamp, xnonce, &data);
                 }
                 Packet::Response {
                     token_data,
@@ -520,12 +523,17 @@ impl NetcodeServer {
         let (_, packet) = Packet::decode(buffer, self.protocol_id, None, None)?;
         match packet {
             Packet::ConnectionRequest {
+                #[cfg(not(feature = "static_alloc"))]
                 data,
                 protocol_id,
                 expire_timestamp,
                 xnonce,
                 version_info,
-            } => self.handle_connection_request(addr, version_info, protocol_id, expire_timestamp, xnonce, data),
+            } => {
+                #[cfg(feature = "static_alloc")]
+                let data = PRIVATE_DATA.lock().unwrap();
+                self.handle_connection_request(addr, version_info, protocol_id, expire_timestamp, xnonce, &data)
+            },
             _ => unreachable!("Decoding packet without key can only return ConnectionRequest packets"),
         }
     }

@@ -1,9 +1,5 @@
 use std::{
-    error::Error,
-    fmt,
-    io::{self, Cursor},
-    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
-    time::Duration,
+    error::Error, fmt, io::{self, Cursor}, net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr}, sync::{Arc, Mutex}, time::Duration
 };
 
 use crate::{
@@ -15,22 +11,12 @@ use crate::{
 };
 use chacha20poly1305::aead::Error as CryptoError;
 
-/// A public connect token that the client receives to start connecting to the server.
-/// How the client receives ConnectToken is up to you, could be from a matchmaking
-/// system or from a call to a REST API as an example.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct DummyConnectToken {
-    pub client_id: u64,
-    pub version_info: [u8; 13],
-    pub protocol_id: u64,
-    pub create_timestamp: u64,
-    pub expire_timestamp: u64,
-    pub xnonce: [u8; NETCODE_CONNECT_TOKEN_XNONCE_BYTES],
-    pub server_addresses: [Option<SocketAddr>; 1],
-    pub client_to_server_key: [u8; NETCODE_KEY_BYTES],
-    pub server_to_client_key: [u8; NETCODE_KEY_BYTES],
-    //pub private_data: [u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
-    pub timeout_seconds: i32,
+#[cfg(feature = "static_alloc")]
+use lazy_static::lazy_static;
+
+#[cfg(feature = "static_alloc")]
+lazy_static! {
+    pub static ref PRIVATE_DATA: Arc<Mutex<[u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES]>> = Arc::new(Mutex::new([0u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES]));
 }
 
 /// A public connect token that the client receives to start connecting to the server.
@@ -50,6 +36,7 @@ pub struct ConnectToken {
     pub server_addresses: [Option<SocketAddr>; SERVER_ADDRESSES_COUNT],
     pub client_to_server_key: [u8; NETCODE_KEY_BYTES],
     pub server_to_client_key: [u8; NETCODE_KEY_BYTES],
+    #[cfg(not(feature = "static_alloc"))]
     pub private_data: [u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
     pub timeout_seconds: i32,
 }
@@ -120,6 +107,9 @@ impl ConnectToken {
         let expire_timestamp = current_time.as_secs() + expire_seconds;
 
         let private_connect_token = PrivateConnectToken::generate(client_id, timeout_seconds, server_addresses, user_data)?;
+        #[cfg(feature = "static_alloc")]
+        let mut private_data = PRIVATE_DATA.lock().unwrap();
+        #[cfg(not(feature = "static_alloc"))]
         let mut private_data = [0u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES];
         let xnonce = generate_random_bytes();
         private_connect_token.encode(&mut private_data, protocol_id, expire_timestamp, &xnonce, private_key)?;
@@ -128,6 +118,7 @@ impl ConnectToken {
             client_id,
             version_info: *NETCODE_VERSION_INFO,
             protocol_id,
+            #[cfg(not(feature = "static_alloc"))]
             private_data,
             create_timestamp: current_time.as_secs(),
             expire_timestamp,
@@ -146,7 +137,10 @@ impl ConnectToken {
         writer.write_all(&self.create_timestamp.to_le_bytes())?;
         writer.write_all(&self.expire_timestamp.to_le_bytes())?;
         writer.write_all(&self.xnonce)?;
-        writer.write_all(&self.private_data)?;
+        #[cfg(feature = "static_alloc")]
+        writer.write_all(PRIVATE_DATA.lock().unwrap().as_ref())?;
+        #[cfg(not(feature = "static_alloc"))]
+        writer.write_all(&self.private_data.as_ref())?;
         writer.write_all(&self.timeout_seconds.to_le_bytes())?;
         write_server_adresses(writer, &self.server_addresses)?;
         writer.write_all(&self.client_to_server_key)?;
@@ -167,6 +161,9 @@ impl ConnectToken {
         let expire_timestamp = read_u64(src)?;
         let xnonce = read_bytes(src)?;
 
+        #[cfg(feature = "static_alloc")]
+        read_bytes_into(&mut PRIVATE_DATA.lock().unwrap(), src)?;
+        #[cfg(not(feature = "static_alloc"))]
         let private_data: [u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES] = read_bytes(src)?;
         let timeout_seconds = read_i32(src)?;
         let server_addresses = read_server_addresses(src)?;
@@ -180,6 +177,7 @@ impl ConnectToken {
             create_timestamp,
             expire_timestamp,
             xnonce,
+            #[cfg(not(feature = "static_alloc"))]
             private_data,
             server_addresses,
             client_to_server_key,

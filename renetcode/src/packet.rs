@@ -1,8 +1,9 @@
 use std::io::{self, Cursor, Write};
+use std::sync::{Arc, Mutex};
 
 use crate::crypto::{dencrypted_in_place, encrypt_in_place};
 use crate::replay_protection::ReplayProtection;
-use crate::token::ConnectToken;
+use crate::token::{ConnectToken, PRIVATE_DATA};
 use crate::{
     serialize::*, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES, NETCODE_CONNECT_TOKEN_XNONCE_BYTES,
     NETCODE_KEY_BYTES, NETCODE_MAC_BYTES,
@@ -21,7 +22,7 @@ pub enum PacketType {
     Disconnect = 6,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(not(target_arch = "xtensa"), derive(Debug, PartialEq, Eq))]
 #[allow(clippy::large_enum_variant)] // TODO: Consider boxing types
 pub enum Packet<'a> {
     ConnectionRequest {
@@ -29,6 +30,9 @@ pub enum Packet<'a> {
         protocol_id: u64,
         expire_timestamp: u64,
         xnonce: [u8; NETCODE_CONNECT_TOKEN_XNONCE_BYTES],
+        //#[cfg(feature = "static_alloc")]
+        //data: &'static mut [u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
+        #[cfg(not(feature = "static_alloc"))]
         data: [u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
     },
     ConnectionDenied,
@@ -101,6 +105,9 @@ impl<'a> Packet<'a> {
             version_info: *NETCODE_VERSION_INFO,
             protocol_id: connect_token.protocol_id,
             expire_timestamp: connect_token.expire_timestamp,
+            //#[cfg(feature = "static_alloc")]
+            //data: connect_token.private_data,
+            #[cfg(not(feature = "static_alloc"))]
             data: connect_token.private_data,
         }
     }
@@ -129,12 +136,15 @@ impl<'a> Packet<'a> {
                 protocol_id,
                 expire_timestamp,
                 xnonce,
-                data,
+                //data,
             } => {
                 writer.write_all(version_info)?;
                 writer.write_all(&protocol_id.to_le_bytes())?;
                 writer.write_all(&expire_timestamp.to_le_bytes())?;
                 writer.write_all(xnonce)?;
+                #[cfg(feature = "static_alloc")]
+                writer.write_all(PRIVATE_DATA.lock().unwrap().as_ref())?;
+                #[cfg(not(feature = "static_alloc"))]
                 writer.write_all(data)?;
             }
             Packet::Challenge {
@@ -174,13 +184,17 @@ impl<'a> Packet<'a> {
                 let protocol_id = read_u64(src)?;
                 let expire_timestamp = read_u64(src)?;
                 let xnonce = read_bytes(src)?;
-                let token_data = read_bytes(src)?;
+                #[cfg(feature = "static_alloc")]
+                read_bytes_into(&mut PRIVATE_DATA.lock().unwrap(), src)?;
+                #[cfg(not(feature = "static_alloc"))]
+                let token_data: [u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES] = read_bytes(src)?;
 
                 Ok(Packet::ConnectionRequest {
                     version_info,
                     protocol_id,
                     expire_timestamp,
                     xnonce,
+                    #[cfg(not(feature = "static_alloc"))]
                     data: token_data,
                 })
             }
@@ -214,7 +228,7 @@ impl<'a> Packet<'a> {
         }
     }
 
-    pub fn encode(&self, buffer: &mut [u8], protocol_id: u64, crypto_info: Option<(u64, &[u8; 32])>) -> Result<usize, NetcodeError> {
+    pub fn encode<'s>(&self, buffer: &'s mut [u8], protocol_id: u64, crypto_info: Option<(u64, &[u8; 32])>) -> Result<usize, NetcodeError> {
         if matches!(self, Packet::ConnectionRequest { .. }) {
             let mut writer = io::Cursor::new(buffer);
             let prefix_byte = encode_prefix(self.id(), 0);
@@ -376,6 +390,7 @@ fn read_sequence(source: &mut impl io::Read, len: usize) -> Result<u64, io::Erro
     Ok(u64::from_le_bytes(seq_scratch))
 }
 
+#[cfg(not(target_arch = "xtensa"))]
 #[cfg(test)]
 mod tests {
     use crate::{crypto::generate_random_bytes, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES};
