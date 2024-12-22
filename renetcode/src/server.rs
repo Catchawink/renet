@@ -1,13 +1,7 @@
 use std::{collections::HashMap, net::SocketAddr, time::Duration};
 
 use crate::{
-    crypto::generate_random_bytes,
-    packet::{ChallengeToken, Packet},
-    replay_protection::ReplayProtection,
-    token::{PrivateConnectToken, PRIVATE_DATA},
-    NetcodeError, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES, NETCODE_CONNECT_TOKEN_XNONCE_BYTES, NETCODE_KEY_BYTES, NETCODE_MAC_BYTES,
-    NETCODE_MAX_CLIENTS, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_MAX_PENDING_CLIENTS, NETCODE_SEND_RATE,
-    NETCODE_USER_DATA_BYTES, NETCODE_VERSION_INFO,
+    client::CHALLENGE_TOKEN_DATA, crypto::generate_random_bytes, packet::{ChallengeToken, Packet}, replay_protection::ReplayProtection, token::{PrivateConnectToken, PRIVATE_DATA}, NetcodeError, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES, NETCODE_CONNECT_TOKEN_XNONCE_BYTES, NETCODE_KEY_BYTES, NETCODE_MAC_BYTES, NETCODE_MAX_CLIENTS, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_MAX_PENDING_CLIENTS, NETCODE_SEND_RATE, NETCODE_USER_DATA_BYTES, NETCODE_VERSION_INFO
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -466,10 +460,13 @@ impl NetcodeServer {
                     return self.handle_connection_request(addr, version_info, protocol_id, expire_timestamp, xnonce, &data);
                 }
                 Packet::Response {
+                    #[cfg(not(feature = "static_alloc"))]
                     token_data,
                     token_sequence,
                 } => {
-                    let challenge_token = ChallengeToken::decode(token_data, token_sequence, &self.challenge_key)?;
+                    #[cfg(feature = "static_alloc")]
+                    let token_data = CHALLENGE_TOKEN_DATA.lock().unwrap();
+                    let challenge_token = ChallengeToken::decode(&token_data, token_sequence, &self.challenge_key)?;
                     let mut pending = self.pending_clients.remove(&addr).unwrap();
                     if find_client_slot_by_id(&self.clients, challenge_token.client_id).is_some() {
                         log::debug!(

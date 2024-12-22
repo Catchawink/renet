@@ -1,17 +1,22 @@
-use std::{error::Error, fmt, net::SocketAddr, time::Duration};
+use std::{error::Error, fmt, net::SocketAddr, sync::{Arc, Mutex}, time::Duration};
 
 use crate::{
     packet::Packet, replay_protection::ReplayProtection, token::ConnectToken, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES,
     NETCODE_KEY_BYTES, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_SEND_RATE, NETCODE_USER_DATA_BYTES,
 };
 
-
 #[cfg(feature = "static_alloc")]
 use once_mut::once_mut;
+#[cfg(feature = "static_alloc")]
+use lazy_static::lazy_static;
 
 #[cfg(feature = "static_alloc")]
 once_mut! {
     pub static mut OUT: [u8; NETCODE_MAX_PACKET_BYTES] = [0u8; NETCODE_MAX_PACKET_BYTES];
+}
+
+lazy_static! {
+    pub static ref CHALLENGE_TOKEN_DATA: Arc<Mutex<[u8; NETCODE_CHALLENGE_TOKEN_BYTES]>> = Arc::new(Mutex::new([0u8; NETCODE_CHALLENGE_TOKEN_BYTES]));
 }
 
 /// The reason why a client is in error state
@@ -71,6 +76,7 @@ pub struct NetcodeClient {
     server_addr_index: usize,
     connect_token: ConnectToken,
     challenge_token_sequence: u64,
+    #[cfg(not(feature = "static_alloc"))]
     challenge_token_data: [u8; NETCODE_CHALLENGE_TOKEN_BYTES],
     max_clients: u32,
     client_index: u32,
@@ -143,6 +149,7 @@ impl NetcodeClient {
             max_clients: 0,
             client_index: 0,
             send_rate: NETCODE_SEND_RATE,
+            #[cfg(not(feature = "static_alloc"))]
             challenge_token_data: [0u8; NETCODE_CHALLENGE_TOKEN_BYTES],
             connect_token,
             #[cfg(feature = "replay_protection")]
@@ -238,6 +245,7 @@ impl NetcodeClient {
             }
             (
                 Packet::Challenge {
+                    #[cfg(not(feature = "static_alloc"))]
                     token_data,
                     token_sequence,
                 },
@@ -246,7 +254,10 @@ impl NetcodeClient {
                 self.challenge_token_sequence = token_sequence;
                 self.last_packet_received_time = self.current_time;
                 self.last_packet_send_time = None;
-                self.challenge_token_data = token_data;
+                #[cfg(not(feature = "static_alloc"))]
+                {
+                    self.challenge_token_data = token_data;
+                }
                 self.state = ClientState::SendingConnectionResponse;
             }
             (Packet::KeepAlive { .. }, ClientState::Connected) => {
@@ -376,6 +387,7 @@ impl NetcodeClient {
             ClientState::SendingConnectionRequest => Packet::connection_request_from_token(&self.connect_token),
             ClientState::SendingConnectionResponse => Packet::Response {
                 token_sequence: self.challenge_token_sequence,
+                #[cfg(not(feature = "static_alloc"))]
                 token_data: self.challenge_token_data,
             },
             ClientState::Connected => Packet::KeepAlive {
