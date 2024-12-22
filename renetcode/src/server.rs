@@ -243,6 +243,7 @@ impl NetcodeServer {
         data: &[u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES],
     ) -> Result<ServerResult<'a, '_>, NetcodeError> {
         println!("Connection request expire timestamp: {}", expire_timestamp);
+        println!("Current time: {}", self.current_time.as_secs());
         if version_info != *NETCODE_VERSION_INFO {
             return Err(NetcodeError::InvalidVersion);
         }
