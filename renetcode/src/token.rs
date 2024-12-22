@@ -382,7 +382,7 @@ type USER_DATA_TYPE = [u8; NETCODE_USER_DATA_BYTES];
 #[cfg(feature = "static_alloc")]
 type SERVER_ADRESSES_TYPE<'a> = MutexGuard<'a, [Option<SocketAddr>; SERVER_ADDRESSES_COUNT]>;
 #[cfg(not(feature = "static_alloc"))]
-type RESULT_TYPE = [Option<SocketAddr>; SERVER_ADDRESSES_COUNT];
+type SERVER_ADRESSES_TYPE = [Option<SocketAddr>; SERVER_ADDRESSES_COUNT];
 
 fn read_server_addresses(src: &mut impl io::Read) -> Result<SERVER_ADRESSES_TYPE, io::Error> {
     #[cfg(feature = "static_alloc")]

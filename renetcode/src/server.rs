@@ -1,7 +1,13 @@
 use std::{collections::HashMap, net::SocketAddr, time::Duration};
 
 use crate::{
-    client::CHALLENGE_TOKEN_DATA, crypto::generate_random_bytes, packet::{ChallengeToken, Packet}, replay_protection::ReplayProtection, token::{PrivateConnectToken, PRIVATE_DATA, SERVER_ADDRESSES}, NetcodeError, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES, NETCODE_CONNECT_TOKEN_XNONCE_BYTES, NETCODE_KEY_BYTES, NETCODE_MAC_BYTES, NETCODE_MAX_CLIENTS, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_MAX_PENDING_CLIENTS, NETCODE_SEND_RATE, NETCODE_USER_DATA_BYTES, NETCODE_VERSION_INFO
+    crypto::generate_random_bytes, packet::{ChallengeToken, Packet}, replay_protection::ReplayProtection, token::PrivateConnectToken, NetcodeError, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES, NETCODE_CONNECT_TOKEN_XNONCE_BYTES, NETCODE_KEY_BYTES, NETCODE_MAC_BYTES, NETCODE_MAX_CLIENTS, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_MAX_PENDING_CLIENTS, NETCODE_SEND_RATE, NETCODE_USER_DATA_BYTES, NETCODE_VERSION_INFO
+};
+
+#[cfg(feature = "static_alloc")]
+use crate::{
+    client::CHALLENGE_TOKEN_DATA,
+    token::{PRIVATE_DATA, SERVER_ADDRESSES}
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

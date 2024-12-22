@@ -1,10 +1,15 @@
 use std::io::{self, Cursor, Write};
 use std::sync::{Arc, Mutex};
 
+#[cfg(feature = "static_alloc")]
+use crate::token::PRIVATE_DATA;
+#[cfg(feature = "static_alloc")]
 use crate::client::CHALLENGE_TOKEN_DATA;
+
 use crate::crypto::{dencrypted_in_place, encrypt_in_place};
 use crate::replay_protection::ReplayProtection;
-use crate::token::{ConnectToken, PRIVATE_DATA};
+use crate::token::ConnectToken;
+
 use crate::{
     serialize::*, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES, NETCODE_CONNECT_TOKEN_XNONCE_BYTES,
     NETCODE_KEY_BYTES, NETCODE_MAC_BYTES,
@@ -143,7 +148,8 @@ impl<'a> Packet<'a> {
                 protocol_id,
                 expire_timestamp,
                 xnonce,
-                //data,
+                #[cfg(not(feature = "static_alloc"))]
+                data,
             } => {
                 writer.write_all(version_info)?;
                 writer.write_all(&protocol_id.to_le_bytes())?;
@@ -537,7 +543,7 @@ mod tests {
                 token_data,
                 token_sequence,
             } => {
-                let decoded = ChallengeToken::decode(token_data, token_sequence, &challenge_key).unwrap();
+                let decoded = ChallengeToken::decode(&token_data, token_sequence, &challenge_key).unwrap();
                 assert_eq!(decoded, token);
             }
             _ => unreachable!(),

@@ -1,9 +1,12 @@
 use std::{error::Error, fmt, net::SocketAddr, sync::{Arc, Mutex}, time::Duration};
 
 use crate::{
-    packet::Packet, replay_protection::ReplayProtection, token::{ConnectToken, SERVER_ADDRESSES}, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES,
+    packet::Packet, replay_protection::ReplayProtection, token::ConnectToken, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES,
     NETCODE_KEY_BYTES, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_SEND_RATE, NETCODE_USER_DATA_BYTES,
 };
+
+#[cfg(feature = "static_alloc")]
+use crate::token::SERVER_ADDRESSES;
 
 #[cfg(feature = "static_alloc")]
 use once_mut::once_mut;
@@ -15,6 +18,7 @@ once_mut! {
     pub static mut OUT: [u8; NETCODE_MAX_PACKET_BYTES] = [0u8; NETCODE_MAX_PACKET_BYTES];
 }
 
+#[cfg(feature = "static_alloc")]
 lazy_static! {
     pub static ref CHALLENGE_TOKEN_DATA: Arc<Mutex<[u8; NETCODE_CHALLENGE_TOKEN_BYTES]>> = Arc::new(Mutex::new([0u8; NETCODE_CHALLENGE_TOKEN_BYTES]));
 }
@@ -41,7 +45,7 @@ enum ClientState {
 }
 
 /// Configuration to establish a secure or unsecure connection with the server.
-#[cfg_attr(not(target_arch = "xtensa"), Debug, Clone)]
+#[cfg_attr(not(target_arch = "xtensa"), derive(Debug, Clone))]
 #[allow(clippy::large_enum_variant)]
 pub enum ClientAuthentication {
     /// Establishes a safe connection with the server using the [crate::ConnectToken].
@@ -81,7 +85,7 @@ pub struct NetcodeClient {
     max_clients: u32,
     client_index: u32,
     send_rate: Duration,
-    #[cfg(not(target_arch = "xtensa"))]
+    #[cfg(feature = "replay_protection")]
     replay_protection: ReplayProtection,
     #[cfg(feature = "static_alloc")]
     out: &'static mut [u8; NETCODE_MAX_PACKET_BYTES],
@@ -228,9 +232,9 @@ impl NetcodeClient {
             buffer,
             self.connect_token.protocol_id,
             Some(&self.connect_token.server_to_client_key),
-            #[cfg(target_arch = "xtensa")]
+            #[cfg(not(feature = "replay_protection"))]
             None,
-            #[cfg(not(target_arch = "xtensa"))]
+            #[cfg(feature = "replay_protection")]
             Some(&mut self.replay_protection),
         ) {
             Ok((_, packet)) => packet,
