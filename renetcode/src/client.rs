@@ -104,16 +104,14 @@ impl Error for DisconnectReason {}
 impl NetcodeClient {
     pub fn new(current_time: Duration, authentication: ClientAuthentication) -> Result<Self, NetcodeError> {
 
-        let mut _connect_token: Option<ConnectToken> = None;
-
-        match authentication {
+        let mut connect_token = match authentication {
             ClientAuthentication::Unsecure {
                 server_addr,
                 protocol_id,
                 client_id,
                 user_data,
             } => {
-                _connect_token = Some(ConnectToken::generate(
+                ConnectToken::generate(
                     current_time,
                     protocol_id,
                     300,
@@ -122,14 +120,12 @@ impl NetcodeClient {
                     vec![server_addr],
                     user_data.as_ref(),
                     &[0; NETCODE_KEY_BYTES],
-                )?);
+                )?
             },
             ClientAuthentication::Secure { connect_token } => {
-                _connect_token = Some(connect_token);
+                connect_token
             }
         };
-
-        let connect_token = _connect_token.unwrap();
 
         let server_addr = connect_token.server_addresses[0].expect("cannot create or deserialize a ConnectToken without a server address");
 

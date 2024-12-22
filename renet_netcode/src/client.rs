@@ -10,11 +10,22 @@ use renet::{ClientId, RenetClient};
 
 use super::NetcodeTransportError;
 
+#[cfg(feature = "static_alloc")]
+use once_mut::once_mut;
+
+#[cfg(feature = "static_alloc")]
+once_mut! {
+    pub static mut BUFFER: [u8; NETCODE_MAX_PACKET_BYTES] = [0u8; NETCODE_MAX_PACKET_BYTES];
+}
+
 #[cfg_attr(not(target_arch = "xtensa"), derive(Debug))]
 #[cfg_attr(feature = "bevy", derive(bevy_ecs::system::Resource))]
 pub struct NetcodeClientTransport {
     socket: UdpSocket,
     netcode_client: NetcodeClient,
+    #[cfg(feature = "static_alloc")]
+    buffer: &'static mut [u8; NETCODE_MAX_PACKET_BYTES],
+    #[cfg(not(feature = "static_alloc"))]
     buffer: [u8; NETCODE_MAX_PACKET_BYTES],
 }
 
@@ -24,6 +35,9 @@ impl NetcodeClientTransport {
         let netcode_client = NetcodeClient::new(current_time, authentication)?;
 
         Ok(Self {
+            #[cfg(feature = "static_alloc")]
+            buffer: BUFFER.take().unwrap(),
+            #[cfg(not(feature = "static_alloc"))]
             buffer: [0u8; NETCODE_MAX_PACKET_BYTES],
             socket,
             netcode_client,
@@ -105,7 +119,7 @@ impl NetcodeClientTransport {
         }
 
         loop {
-            let packet = match self.socket.recv_from(&mut self.buffer) {
+            let packet = match self.socket.recv_from(self.buffer.as_mut()) {
                 Ok((len, addr)) => {
                     if addr != self.netcode_client.server_addr() {
                         log::debug!("Discarded packet from unknown server {:?}", addr);
