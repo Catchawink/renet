@@ -465,6 +465,7 @@ impl NetcodeServer {
                     xnonce,
                     version_info,
                 } => {
+                    println!("Connection request expire timestamp: {}", expire_timestamp);
                     #[cfg(feature = "static_alloc")]
                     let data = PRIVATE_DATA.lock().unwrap();
                     return self.handle_connection_request(addr, version_info, protocol_id, expire_timestamp, xnonce, &data);
