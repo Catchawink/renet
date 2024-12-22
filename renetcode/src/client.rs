@@ -1,7 +1,7 @@
 use std::{error::Error, fmt, net::SocketAddr, sync::{Arc, Mutex}, time::Duration};
 
 use crate::{
-    packet::Packet, replay_protection::ReplayProtection, token::ConnectToken, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES,
+    packet::Packet, replay_protection::ReplayProtection, token::{ConnectToken, SERVER_ADDRESSES}, NetcodeError, NETCODE_CHALLENGE_TOKEN_BYTES,
     NETCODE_KEY_BYTES, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_SEND_RATE, NETCODE_USER_DATA_BYTES,
 };
 
@@ -132,7 +132,10 @@ impl NetcodeClient {
                 connect_token
             }
         };
+        #[cfg(feature = "static_alloc")]
+        let server_addr = SERVER_ADDRESSES.lock().unwrap()[0].expect("cannot create or deserialize a ConnectToken without a server address");
 
+        #[cfg(not(feature = "static_alloc"))]
         let server_addr = connect_token.server_addresses[0].expect("cannot create or deserialize a ConnectToken without a server address");
 
         Ok(Self {
@@ -342,7 +345,12 @@ impl NetcodeClient {
                     if self.server_addr_index >= 32 {
                         return Err(NetcodeError::NoMoreServers);
                     }
-                    match self.connect_token.server_addresses[self.server_addr_index] {
+                    #[cfg(feature = "static_alloc")]
+                    let server_addresses = SERVER_ADDRESSES.lock().unwrap();
+                    #[cfg(not(feature = "static_alloc"))]
+                    let server_addresses = self.connect_token.server_addresses;
+
+                    match server_addresses[self.server_addr_index] {
                         None => return Err(NetcodeError::NoMoreServers),
                         Some(server_address) => {
                             self.state = ClientState::SendingConnectionRequest;

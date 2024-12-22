@@ -1,7 +1,7 @@
 use std::{collections::HashMap, net::SocketAddr, time::Duration};
 
 use crate::{
-    client::CHALLENGE_TOKEN_DATA, crypto::generate_random_bytes, packet::{ChallengeToken, Packet}, replay_protection::ReplayProtection, token::{PrivateConnectToken, PRIVATE_DATA}, NetcodeError, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES, NETCODE_CONNECT_TOKEN_XNONCE_BYTES, NETCODE_KEY_BYTES, NETCODE_MAC_BYTES, NETCODE_MAX_CLIENTS, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_MAX_PENDING_CLIENTS, NETCODE_SEND_RATE, NETCODE_USER_DATA_BYTES, NETCODE_VERSION_INFO
+    client::CHALLENGE_TOKEN_DATA, crypto::generate_random_bytes, packet::{ChallengeToken, Packet}, replay_protection::ReplayProtection, token::{PrivateConnectToken, PRIVATE_DATA, SERVER_ADDRESSES}, NetcodeError, NETCODE_CONNECT_TOKEN_PRIVATE_BYTES, NETCODE_CONNECT_TOKEN_XNONCE_BYTES, NETCODE_KEY_BYTES, NETCODE_MAC_BYTES, NETCODE_MAX_CLIENTS, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES, NETCODE_MAX_PENDING_CLIENTS, NETCODE_SEND_RATE, NETCODE_USER_DATA_BYTES, NETCODE_VERSION_INFO
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -248,11 +248,14 @@ impl NetcodeServer {
         }
 
         let connect_token = PrivateConnectToken::decode(&data, self.protocol_id, expire_timestamp, &xnonce, &self.connect_key)?;
+        #[cfg(feature = "static_alloc")]
+        let server_addresses = SERVER_ADDRESSES.lock().unwrap();
+        #[cfg(not(feature = "static_alloc"))]
+        let server_addresses = connect_token.server_addresses;
 
         // Skip host list check when unsecure
         if self.secure {
-            let in_host_list = connect_token
-                .server_addresses
+            let in_host_list = server_addresses
                 .iter()
                 .filter_map(|host| *host)
                 .any(|addr| self.public_addresses.contains(&addr));

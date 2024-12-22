@@ -1,5 +1,5 @@
 use std::{
-    error::Error, fmt, io::{self, Cursor}, net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr}, sync::{Arc, Mutex}, time::Duration
+    error::Error, fmt, io::{self, Cursor}, net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr}, sync::{Arc, Mutex, MutexGuard}, time::Duration
 };
 
 use crate::{
@@ -17,6 +17,7 @@ use lazy_static::lazy_static;
 #[cfg(feature = "static_alloc")]
 lazy_static! {
     pub static ref PRIVATE_DATA: Arc<Mutex<[u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES]>> = Arc::new(Mutex::new([0u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES]));
+    pub static ref SERVER_ADDRESSES: Arc<Mutex<[Option<SocketAddr>; SERVER_ADDRESSES_COUNT]>> = Arc::new(Mutex::new([None; SERVER_ADDRESSES_COUNT]));
 }
 
 /// A public connect token that the client receives to start connecting to the server.
@@ -33,6 +34,7 @@ pub struct ConnectToken {
     pub create_timestamp: u64,
     pub expire_timestamp: u64,
     pub xnonce: [u8; NETCODE_CONNECT_TOKEN_XNONCE_BYTES],
+    #[cfg(not(feature = "static_alloc"))]
     pub server_addresses: [Option<SocketAddr>; SERVER_ADDRESSES_COUNT],
     pub client_to_server_key: [u8; NETCODE_KEY_BYTES],
     pub server_to_client_key: [u8; NETCODE_KEY_BYTES],
@@ -45,6 +47,7 @@ pub struct ConnectToken {
 pub(crate) struct PrivateConnectToken {
     pub client_id: u64,       // globally unique identifier for an authenticated client
     pub timeout_seconds: i32, // timeout in seconds. negative values disable timeout (dev only)
+    #[cfg(not(feature = "static_alloc"))]
     pub server_addresses: [Option<SocketAddr>; SERVER_ADDRESSES_COUNT],
     pub client_to_server_key: [u8; NETCODE_KEY_BYTES],
     pub server_to_client_key: [u8; NETCODE_KEY_BYTES],
@@ -88,6 +91,16 @@ impl fmt::Display for TokenGenerationError {
 }
 
 impl ConnectToken {
+    #[cfg(feature = "static_alloc")]
+    pub fn get_server_addresses<'a>(&self) -> SERVER_ADRESSES_TYPE<'a> {
+        SERVER_ADDRESSES.lock().unwrap()
+    }
+
+    #[cfg(not(feature = "static_alloc"))]
+    pub fn get_server_addresses(&self) -> SERVER_ADRESSES_TYPE {
+        self.server_addresses
+    }
+
     /// Generate a token to be sent to an client. The user data is available to the server after an
     /// successfull conection. The private key and the protocol id must be the same used in server.
     #[allow(clippy::too_many_arguments)]
@@ -121,6 +134,7 @@ impl ConnectToken {
             create_timestamp: current_time.as_secs(),
             expire_timestamp,
             xnonce,
+            #[cfg(not(feature = "static_alloc"))]
             server_addresses: private_connect_token.server_addresses,
             client_to_server_key: private_connect_token.client_to_server_key,
             server_to_client_key: private_connect_token.server_to_client_key,
@@ -140,7 +154,8 @@ impl ConnectToken {
         #[cfg(not(feature = "static_alloc"))]
         writer.write_all(&self.private_data.as_ref())?;
         writer.write_all(&self.timeout_seconds.to_le_bytes())?;
-        write_server_adresses(writer, &self.server_addresses)?;
+        
+        write_server_adresses(writer, &self.get_server_addresses())?;
         writer.write_all(&self.client_to_server_key)?;
         writer.write_all(&self.server_to_client_key)?;
 
@@ -164,7 +179,12 @@ impl ConnectToken {
         #[cfg(not(feature = "static_alloc"))]
         let private_data: [u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES] = read_bytes(src)?;
         let timeout_seconds = read_i32(src)?;
+
+        #[cfg(feature = "static_alloc")]
+        read_server_addresses(src)?;
+        #[cfg(not(feature = "static_alloc"))]
         let server_addresses = read_server_addresses(src)?;
+
         let client_to_server_key: [u8; NETCODE_KEY_BYTES] = read_bytes(src)?;
         let server_to_client_key: [u8; NETCODE_KEY_BYTES] = read_bytes(src)?;
 
@@ -177,6 +197,7 @@ impl ConnectToken {
             xnonce,
             #[cfg(not(feature = "static_alloc"))]
             private_data,
+            #[cfg(not(feature = "static_alloc"))]
             server_addresses,
             client_to_server_key,
             server_to_client_key,
@@ -186,6 +207,16 @@ impl ConnectToken {
 }
 
 impl PrivateConnectToken {
+    #[cfg(feature = "static_alloc")]
+    pub fn get_server_addresses<'a>(&self) -> SERVER_ADRESSES_TYPE<'a> {
+        SERVER_ADDRESSES.lock().unwrap()
+    }
+
+    #[cfg(not(feature = "static_alloc"))]
+    pub fn get_server_addresses(&self) -> SERVER_ADRESSES_TYPE {
+        self.server_addresses
+    }
+
     fn generate(
         client_id: u64,
         timeout_seconds: i32,
@@ -215,6 +246,7 @@ impl PrivateConnectToken {
         Ok(Self {
             client_id,
             timeout_seconds,
+            #[cfg(not(feature = "static_alloc"))]
             server_addresses: server_addresses_arr,
             client_to_server_key,
             server_to_client_key,
@@ -225,7 +257,7 @@ impl PrivateConnectToken {
     fn write(&self, writer: &mut impl io::Write) -> Result<(), io::Error> {
         writer.write_all(&self.client_id.to_le_bytes())?;
         writer.write_all(&self.timeout_seconds.to_le_bytes())?;
-        write_server_adresses(writer, &self.server_addresses)?;
+        write_server_adresses(writer, &self.get_server_addresses())?;
         writer.write_all(&self.client_to_server_key)?;
         writer.write_all(&self.server_to_client_key)?;
         writer.write_all(&self.user_data)?;
@@ -236,6 +268,9 @@ impl PrivateConnectToken {
     fn read(src: &mut impl io::Read) -> Result<Self, io::Error> {
         let client_id = read_u64(src)?;
         let timeout_seconds = read_i32(src)?;
+        #[cfg(feature = "static_alloc")]
+        read_server_addresses(src)?;
+        #[cfg(not(feature = "static_alloc"))]
         let server_addresses = read_server_addresses(src)?;
         let mut client_to_server_key = [0u8; 32];
         src.read_exact(&mut client_to_server_key)?;
@@ -249,6 +284,7 @@ impl PrivateConnectToken {
         Ok(Self {
             client_id,
             timeout_seconds,
+            #[cfg(not(feature = "static_alloc"))]
             server_addresses,
             client_to_server_key,
             server_to_client_key,
@@ -316,7 +352,15 @@ fn write_server_adresses(writer: &mut impl io::Write, server_addresses: &[Option
     Ok(())
 }
 
-fn read_server_addresses(src: &mut impl io::Read) -> Result<[Option<SocketAddr>; SERVER_ADDRESSES_COUNT], io::Error> {
+#[cfg(feature = "static_alloc")]
+type SERVER_ADRESSES_TYPE<'a> = MutexGuard<'a, [Option<SocketAddr>; SERVER_ADDRESSES_COUNT]>;
+#[cfg(not(feature = "static_alloc"))]
+type RESULT_TYPE = [Option<SocketAddr>; SERVER_ADDRESSES_COUNT];
+
+fn read_server_addresses(src: &mut impl io::Read) -> Result<SERVER_ADRESSES_TYPE, io::Error> {
+    #[cfg(feature = "static_alloc")]
+    let mut server_addresses = SERVER_ADDRESSES.lock().unwrap();
+    #[cfg(not(feature = "static_alloc"))]
     let mut server_addresses = [None; SERVER_ADDRESSES_COUNT];
     let num_server_addresses = read_u32(src)? as usize;
     for server_address in server_addresses.iter_mut().take(num_server_addresses) {
@@ -348,7 +392,7 @@ fn read_server_addresses(src: &mut impl io::Read) -> Result<[Option<SocketAddr>;
         ));
     }
 
-    Ok(server_addresses)
+    return Ok(server_addresses);
 }
 
 fn get_additional_data(protocol_id: u64, expire_timestamp: u64) -> [u8; NETCODE_ADDITIONAL_DATA_SIZE] {
