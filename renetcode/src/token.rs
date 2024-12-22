@@ -45,10 +45,7 @@ pub struct ConnectToken {
 pub(crate) struct PrivateConnectToken {
     pub client_id: u64,       // globally unique identifier for an authenticated client
     pub timeout_seconds: i32, // timeout in seconds. negative values disable timeout (dev only)
-    #[cfg(target_arch = "xtensa")]
-    pub server_addresses: [Option<SocketAddr>; 1],
-    #[cfg(not(target_arch = "xtensa"))]
-    pub server_addresses: [Option<SocketAddr>; 32],
+    pub server_addresses: [Option<SocketAddr>; SERVER_ADDRESSES_COUNT],
     pub client_to_server_key: [u8; NETCODE_KEY_BYTES],
     pub server_to_client_key: [u8; NETCODE_KEY_BYTES],
     pub user_data: [u8; NETCODE_USER_DATA_BYTES], // user defined data specific to this protocol id
