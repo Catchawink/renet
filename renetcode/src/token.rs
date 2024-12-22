@@ -107,13 +107,16 @@ impl ConnectToken {
         let expire_timestamp = current_time.as_secs() + expire_seconds;
 
         let private_connect_token = PrivateConnectToken::generate(client_id, timeout_seconds, server_addresses, user_data)?;
+
+        let xnonce = [0u8; 24];
+        /*
         #[cfg(feature = "static_alloc")]
         let mut private_data = PRIVATE_DATA.lock().unwrap();
         #[cfg(not(feature = "static_alloc"))]
         let mut private_data = [0u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES];
         let xnonce = generate_random_bytes();
         private_connect_token.encode(&mut private_data, protocol_id, expire_timestamp, &xnonce, private_key)?;
-
+ */
         Ok(Self {
             client_id,
             version_info: *NETCODE_VERSION_INFO,
