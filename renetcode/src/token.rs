@@ -113,7 +113,7 @@ impl ConnectToken {
         #[cfg(not(feature = "static_alloc"))]
         let mut private_data = [0u8; NETCODE_CONNECT_TOKEN_PRIVATE_BYTES];
         let xnonce = generate_random_bytes();
-        private_connect_token.encode(&mut private_data, protocol_id, expire_timestamp, &xnonce, private_key)?;
+        //private_connect_token.encode(&mut private_data, protocol_id, expire_timestamp, &xnonce, private_key)?;
 
         Ok(Self {
             client_id,
