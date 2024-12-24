@@ -1,5 +1,5 @@
-use chacha20poly1305::aead::rand_core::TryRngCore;
-use chacha20poly1305::aead::{rand_core::RngCore, OsRng};
+use chacha20poly1305::aead::rand_core::RngCore;
+use chacha20poly1305::aead::OsRng;
 use chacha20poly1305::{AeadInPlace, ChaCha20Poly1305, Error as CryptoError, Key, KeyInit, Nonce, Tag, XChaCha20Poly1305, XNonce};
 
 use crate::{NETCODE_CONNECT_TOKEN_XNONCE_BYTES, NETCODE_MAC_BYTES};
@@ -60,7 +60,7 @@ pub fn encrypt_in_place_xnonce(buffer: &mut [u8], xnonce: &[u8; NETCODE_CONNECT_
 /// `getrandom` documentation for details.
 pub fn generate_random_bytes<const N: usize>() -> [u8; N] {
     let mut bytes = [0; N];
-    OsRng.try_fill_bytes(&mut bytes).expect("Failed to fill bytes! This is a hack for Esp32.");
+    OsRng.fill_bytes(&mut bytes);
     bytes
 }
 
