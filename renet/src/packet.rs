@@ -34,6 +34,12 @@ pub enum Packet {
         channel_id: u8,
         slice: Slice,
     },
+    // A big unreliable message is sliced in multiples slice packets
+    UnreliableRef {
+        sequence: u64,
+        channel_id: u8,
+        message: &'static [u8]
+    },
     // A big reliable messages is sliced in multiples slice packets
     ReliableSlice {
         sequence: u64,
@@ -88,7 +94,8 @@ impl Packet {
             | Packet::SmallUnreliable { sequence, .. }
             | Packet::UnreliableSlice { sequence, .. }
             | Packet::ReliableSlice { sequence, .. }
-            | Packet::Ack { sequence, .. } => *sequence
+            | Packet::Ack { sequence, .. } => *sequence,
+            Packet::UnreliableRef { sequence, channel_id, message } => todo!(),
         }
     }
 
@@ -200,6 +207,7 @@ impl Packet {
                     previous_range_start = range.start;
                 }
             }
+            Packet::UnreliableRef { sequence, channel_id, message } => todo!(),
         }
 
         Ok(before - b.cap())

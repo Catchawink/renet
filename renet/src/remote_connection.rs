@@ -487,6 +487,7 @@ impl RenetClient {
                     }
                 }
             }
+            Packet::UnreliableRef { sequence, channel_id, message } => todo!(),
         }
     }
 
@@ -588,6 +589,7 @@ impl RenetClient {
                         },
                     );
                 }
+                Packet::UnreliableRef { sequence, channel_id, message } => todo!(),
             }
         }
 

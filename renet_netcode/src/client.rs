@@ -98,16 +98,16 @@ impl NetcodeClientTransport {
         Ok(())
     }
 
-    pub fn send_unreliable_immediate(&mut self, connection: &mut RenetClient, message: Bytes) -> Result<(), NetcodeTransportError> {
+    pub fn send_unreliable_immediate(&mut self, connection: &mut RenetClient, message: &'static [u8]) -> Result<(), NetcodeTransportError> {
         if let Some(reason) = self.netcode_client.disconnect_reason() {
             return Err(NetcodeError::Disconnected(reason).into());
         }
 
         //let packet_sequence = 0;
-        let packet = Packet::SmallUnreliable {
+        let packet = Packet::UnreliableRef {
             sequence: 0,
             channel_id: DefaultChannel::Unreliable.into(),
-            messages: vec![message]
+            message
         };
 
         let mut buffer = [0u8; 1400];
