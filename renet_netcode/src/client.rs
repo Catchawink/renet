@@ -4,9 +4,10 @@ use std::{
     time::Duration,
 };
 
+use octets::OctetsMut;
 use renetcode::{ClientAuthentication, DisconnectReason, NetcodeClient, NetcodeError, NETCODE_MAX_PACKET_BYTES};
 
-use renet::{ClientId, RenetClient};
+use renet::{Bytes, ClientId, DefaultChannel, Packet, RenetClient};
 
 use super::NetcodeTransportError;
 
@@ -93,6 +94,37 @@ impl NetcodeClientTransport {
             let (addr, payload) = self.netcode_client.generate_payload_packet(&packet)?;
             self.socket.send_to(payload, addr)?;
         }
+
+        Ok(())
+    }
+
+    pub fn send_unreliable_immediate<I: Into<u8>>(&mut self, connection: &mut RenetClient, message: Bytes) -> Result<(), NetcodeTransportError> {
+        if let Some(reason) = self.netcode_client.disconnect_reason() {
+            return Err(NetcodeError::Disconnected(reason).into());
+        }
+
+        //let packet_sequence = 0;
+        let packet = Packet::SmallUnreliable {
+            sequence: 0,
+            channel_id: DefaultChannel::Unreliable.into(),
+            messages: vec![message]
+        };
+
+        let mut buffer = [0u8; 1400];
+        let mut oct = OctetsMut::with_slice(&mut buffer);
+        let len = match packet.to_bytes(&mut oct) {
+            Err(err) => {
+                todo!()
+                //self.disconnect_with_reason(DisconnectReason::PacketSerialization(err));
+                //return vec![];
+            }
+            Ok(len) => len,
+        };
+
+        //packet.to_bytes(&mut oct);
+
+        let (addr, payload) = self.netcode_client.generate_payload_packet(&buffer[..len])?;
+        self.socket.send_to(payload, addr)?;
 
         Ok(())
     }

@@ -88,7 +88,7 @@ impl Packet {
             | Packet::SmallUnreliable { sequence, .. }
             | Packet::UnreliableSlice { sequence, .. }
             | Packet::ReliableSlice { sequence, .. }
-            | Packet::Ack { sequence, .. } => *sequence,
+            | Packet::Ack { sequence, .. } => *sequence
         }
     }
 

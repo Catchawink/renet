@@ -10,6 +10,8 @@ pub use error::{ChannelError, ClientNotFound, DisconnectReason};
 pub use remote_connection::{ConnectionConfig, NetworkInfo, RenetClient, RenetConnectionStatus};
 pub use server::{RenetServer, ServerEvent};
 
+pub use packet::Packet;
+
 pub use bytes::Bytes;
 
 pub type ClientId = u64;
