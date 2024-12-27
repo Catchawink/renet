@@ -14,6 +14,30 @@ pub struct Slice {
     pub payload: Bytes,
 }
 
+pub struct UnreliableRef<'a> {
+    pub sequence: u64,
+    pub channel_id: u8,
+    pub message: &'a [u8]
+}
+
+impl<'a> UnreliableRef<'a> {
+    
+    pub fn to_bytes(&self, b: &mut octets::OctetsMut) -> Result<usize, SerializationError> {
+        let before = b.cap();
+
+        b.put_u8(1)?;
+        b.put_varint(self.sequence)?;
+        b.put_u8(self.channel_id)?;
+        // Messages length (just 1)
+        b.put_u16(1 as u16)?;
+        //for message in messages {
+            b.put_varint(self.message.len() as u64)?;
+            b.put_bytes(self.message)?;
+        //}
+        Ok(before - b.cap())
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Packet {
     // Small messages in a reliable channel are aggregated and sent in this packet
@@ -33,12 +57,6 @@ pub enum Packet {
         sequence: u64,
         channel_id: u8,
         slice: Slice,
-    },
-    // A big unreliable message is sliced in multiples slice packets
-    UnreliableRef {
-        sequence: u64,
-        channel_id: u8,
-        message: &'static [u8]
     },
     // A big reliable messages is sliced in multiples slice packets
     ReliableSlice {
@@ -95,7 +113,6 @@ impl Packet {
             | Packet::UnreliableSlice { sequence, .. }
             | Packet::ReliableSlice { sequence, .. }
             | Packet::Ack { sequence, .. } => *sequence,
-            Packet::UnreliableRef { sequence, channel_id, message } => todo!(),
         }
     }
 
@@ -207,7 +224,6 @@ impl Packet {
                     previous_range_start = range.start;
                 }
             }
-            Packet::UnreliableRef { sequence, channel_id, message } => todo!(),
         }
 
         Ok(before - b.cap())

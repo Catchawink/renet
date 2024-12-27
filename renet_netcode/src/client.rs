@@ -7,7 +7,7 @@ use std::{
 use octets::OctetsMut;
 use renetcode::{ClientAuthentication, DisconnectReason, NetcodeClient, NetcodeError, NETCODE_MAX_PACKET_BYTES};
 
-use renet::{Bytes, ClientId, DefaultChannel, Packet, RenetClient};
+use renet::{Bytes, ClientId, DefaultChannel, Packet, RenetClient, UnreliableRef};
 
 use super::NetcodeTransportError;
 
@@ -104,7 +104,7 @@ impl NetcodeClientTransport {
         }
 
         //let packet_sequence = 0;
-        let packet = Packet::UnreliableRef {
+        let packet = UnreliableRef {
             sequence: 0,
             channel_id: DefaultChannel::Unreliable.into(),
             message
