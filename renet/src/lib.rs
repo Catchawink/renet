@@ -10,7 +10,7 @@ pub use error::{ChannelError, ClientNotFound, DisconnectReason};
 pub use remote_connection::{ConnectionConfig, NetworkInfo, RenetClient, RenetConnectionStatus};
 pub use server::{RenetServer, ServerEvent};
 
-pub use packet::*;
+pub use packet::{Packet, UnreliableRef};
 
 pub use bytes::Bytes;
 
