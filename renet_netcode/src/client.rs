@@ -110,16 +110,9 @@ impl NetcodeClientTransport {
             message
         };
 
-        let mut buffer = [0u8; 1400];
+        let mut buffer = [0u8; 2000];
         let mut oct = OctetsMut::with_slice(&mut buffer);
-        let len = match packet.to_bytes(&mut oct) {
-            Err(err) => {
-                todo!()
-                //self.disconnect_with_reason(DisconnectReason::PacketSerialization(err));
-                //return vec![];
-            }
-            Ok(len) => len,
-        };
+        let len = packet.to_bytes(&mut oct).unwrap();
 
         //packet.to_bytes(&mut oct);
 
