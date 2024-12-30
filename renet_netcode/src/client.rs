@@ -1,7 +1,5 @@
 use std::{
-    io,
-    net::{SocketAddr, UdpSocket},
-    time::Duration,
+    collections::VecDeque, io, net::{SocketAddr, UdpSocket}, time::Duration
 };
 
 use octets::OctetsMut;
@@ -98,11 +96,28 @@ impl NetcodeClientTransport {
         Ok(())
     }
 
-    pub fn send_unreliable_immediate<'a>(&mut self, connection: &mut RenetClient, message: &'a [u8]) -> Result<(), NetcodeTransportError> {
+    pub fn send_unreliable_immediate<'a>(&mut self, connection: &mut RenetClient, message: &'static [u8]) -> Result<(), NetcodeTransportError> {
         if let Some(reason) = self.netcode_client.disconnect_reason() {
             return Err(NetcodeError::Disconnected(reason).into());
         }
 
+        let bytes = Bytes::from_static(message);
+
+        let packets = connection.get_unreliable_packets(DefaultChannel::Unreliable, bytes);
+        for packet in packets {
+            let mut buffer = [0u8; 2000];
+            let mut oct = OctetsMut::with_slice(&mut buffer);
+            let len = packet.to_bytes(&mut oct).unwrap();
+    
+            //packet.to_bytes(&mut oct);
+    
+            let (addr, payload) = self.netcode_client.generate_payload_packet(&buffer[..len])?;
+            self.socket.send_to(payload, addr)?;
+        }
+        /*
+        let mut queue = VecDeque::new();
+        queue.push_front(bytes);
+        
         //let packet_sequence = 0;
         let packet = UnreliableRef {
             sequence: 0,
@@ -118,7 +133,7 @@ impl NetcodeClientTransport {
 
         let (addr, payload) = self.netcode_client.generate_payload_packet(&buffer[..len])?;
         self.socket.send_to(payload, addr)?;
-
+        */
         Ok(())
     }
 

@@ -316,6 +316,16 @@ impl RenetClient {
         }
     }
 
+    pub fn get_unreliable_packets<'a, I: Into<u8>, B: Into<Bytes>>(&mut self, channel_id: I, message: B) -> Vec<Packet> {
+        let channel_id = channel_id.into();
+        if let Some(unreliable_channel) = self.send_unreliable_channels.get_mut(&channel_id) {
+            let mut available_bytes = self.available_bytes_per_tick;
+            unreliable_channel.get_packets_from_bytes(message.into(), &mut self.packet_sequence, &mut available_bytes)
+        } else {
+            panic!("Called 'send_message' with invalid channel {channel_id}");
+        }
+    }
+
     /// Send a message to the server over a channel.
     pub fn send_message<I: Into<u8>, B: Into<Bytes>>(&mut self, channel_id: I, message: B) {
         if self.is_disconnected() {
