@@ -8,7 +8,7 @@ use bytes::Bytes;
 use crate::{
     channel::SliceConstructor,
     error::ChannelError,
-    packet::{Packet, Slice, SLICE_SIZE},
+    packet::{Packet, SimplePacket, SimpleSlice, Slice, SLICE_SIZE},
 };
 
 #[derive(Debug)]
@@ -30,6 +30,10 @@ pub struct ReceiveChannelUnreliable {
     memory_usage_bytes: usize,
 }
 
+struct PacketStore<'a> {
+    messages: Vec<&'a [u8]>,
+}
+
 impl SendChannelUnreliable {
     pub fn new(channel_id: u8, max_memory_usage_bytes: usize) -> Self {
         Self {
@@ -47,6 +51,73 @@ impl SendChannelUnreliable {
 
     pub fn available_memory(&self) -> usize {
         self.max_memory_usage_bytes - self.memory_usage_bytes
+    }
+
+    pub fn get_packets_from_slice<'a>(&mut self, message: &'a [u8], packet_sequence: &mut u64, available_bytes: &mut u64) -> Vec<SimplePacket<'a>> {
+        let mut packets: Vec<SimplePacket<'a>> = vec![];
+        let mut small_messages = PacketStore {
+            messages: Vec::new(),
+        };
+        let mut small_messages_bytes = 0;
+        
+        //self.memory_usage_bytes -= message.len();
+        if *available_bytes < message.len() as u64 {
+            // Drop message, no available bytes to send
+            return packets;
+        }
+
+        *available_bytes -= message.len() as u64;
+        if message.len() > SLICE_SIZE {
+            let num_slices = message.len().div_ceil(SLICE_SIZE);
+
+            for slice_index in 0..num_slices {
+                let start = slice_index * SLICE_SIZE;
+                let end = if slice_index == num_slices - 1 { message.len() } else { (slice_index + 1) * SLICE_SIZE };
+                let payload = &message[start..end];
+
+                let slice = SimpleSlice {
+                    message_id: self.sliced_message_id,
+                    slice_index,
+                    num_slices,
+                    payload,
+                };
+
+                packets.push(SimplePacket::UnreliableSlice {
+                    sequence: *packet_sequence,
+                    channel_id: self.channel_id,
+                    slice,
+                });
+                *packet_sequence += 1;
+            }
+
+            self.sliced_message_id += 1;
+        } else {
+            let serialized_size = message.len() + octets::varint_len(message.len() as u64);
+            if small_messages_bytes + serialized_size > SLICE_SIZE {
+                packets.push(SimplePacket::SmallUnreliable {
+                    sequence: *packet_sequence,
+                    channel_id: self.channel_id,
+                    messages: std::mem::take(&mut small_messages.messages),
+                });
+                *packet_sequence += 1;
+                small_messages_bytes = 0;
+            }
+
+            small_messages_bytes += serialized_size;
+            small_messages.messages.push(message);
+        }
+
+        // Generate final packet for remaining small messages
+        if !small_messages.messages.is_empty() {
+            packets.push(SimplePacket::SmallUnreliable {
+                sequence: *packet_sequence,
+                channel_id: self.channel_id,
+                messages: std::mem::take(&mut small_messages.messages),
+            });
+            *packet_sequence += 1;
+        }
+        
+        packets
     }
 
     pub fn get_packets_from_bytes(&mut self, message: Bytes, packet_sequence: &mut u64, available_bytes: &mut u64) -> Vec<Packet> {
