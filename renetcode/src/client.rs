@@ -264,10 +264,10 @@ impl NetcodeClient {
                 self.challenge_token_sequence = token_sequence;
                 self.last_packet_received_time = self.current_time;
                 self.last_packet_send_time = None;
-                #[cfg(not(feature = "static_alloc"))]
-                {
+                //#[cfg(not(feature = "static_alloc"))]
+                //{
                     self.challenge_token_data = token_data;
-                }
+                //}
                 self.state = ClientState::SendingConnectionResponse;
             }
             (Packet::KeepAlive { .. }, ClientState::Connected) => {
