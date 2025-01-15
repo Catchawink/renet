@@ -14,14 +14,17 @@ use once_mut::once_mut;
 use lazy_static::lazy_static;
 
 #[cfg(feature = "static_alloc")]
-once_mut! {
-    pub static mut OUT: [u8; NETCODE_MAX_PACKET_BYTES] = [0u8; NETCODE_MAX_PACKET_BYTES];
-}
+use crate::allocate_psram_u8_slice;
 
-#[cfg(feature = "static_alloc")]
-lazy_static! {
-    pub static ref CHALLENGE_TOKEN_DATA: Arc<Mutex<[u8; NETCODE_CHALLENGE_TOKEN_BYTES]>> = Arc::new(Mutex::new([0u8; NETCODE_CHALLENGE_TOKEN_BYTES]));
-}
+//#[cfg(feature = "static_alloc")]
+//once_mut! {
+//    pub static mut OUT: [u8; NETCODE_MAX_PACKET_BYTES] = [0u8; NETCODE_MAX_PACKET_BYTES];
+//}
+
+//#[cfg(feature = "static_alloc")]
+//lazy_static! {
+//    pub static ref CHALLENGE_TOKEN_DATA: Arc<Mutex<[u8; NETCODE_CHALLENGE_TOKEN_BYTES]>> = Arc::new(Mutex::new([0u8; NETCODE_CHALLENGE_TOKEN_BYTES]));
+//}
 
 /// The reason why a client is in error state
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,7 +83,7 @@ pub struct NetcodeClient {
     server_addr_index: usize,
     connect_token: ConnectToken,
     challenge_token_sequence: u64,
-    #[cfg(not(feature = "static_alloc"))]
+    //#[cfg(not(feature = "static_alloc"))]
     challenge_token_data: [u8; NETCODE_CHALLENGE_TOKEN_BYTES],
     max_clients: u32,
     client_index: u32,
@@ -88,7 +91,7 @@ pub struct NetcodeClient {
     #[cfg(feature = "replay_protection")]
     replay_protection: ReplayProtection,
     #[cfg(feature = "static_alloc")]
-    out: &'static mut [u8; NETCODE_MAX_PACKET_BYTES],
+    out: &'static mut [u8],
     #[cfg(not(feature = "static_alloc"))]
     out: [u8; NETCODE_MAX_PACKET_BYTES],
 }
@@ -156,13 +159,13 @@ impl NetcodeClient {
             max_clients: 0,
             client_index: 0,
             send_rate: NETCODE_SEND_RATE,
-            #[cfg(not(feature = "static_alloc"))]
+            //#[cfg(not(feature = "static_alloc"))]
             challenge_token_data: [0u8; NETCODE_CHALLENGE_TOKEN_BYTES],
             connect_token,
             #[cfg(feature = "replay_protection")]
             replay_protection: ReplayProtection::new(),
             #[cfg(feature = "static_alloc")]
-            out: OUT.take().unwrap(),
+            out: allocate_psram_u8_slice(NETCODE_MAX_PACKET_BYTES), //OUT.take().unwrap(),
             #[cfg(not(feature = "static_alloc"))]
             out: [0u8; NETCODE_MAX_PACKET_BYTES],
         })
@@ -252,7 +255,7 @@ impl NetcodeClient {
             }
             (
                 Packet::Challenge {
-                    #[cfg(not(feature = "static_alloc"))]
+                    //#[cfg(not(feature = "static_alloc"))]
                     token_data,
                     token_sequence,
                 },
@@ -399,7 +402,7 @@ impl NetcodeClient {
             ClientState::SendingConnectionRequest => Packet::connection_request_from_token(&self.connect_token),
             ClientState::SendingConnectionResponse => Packet::Response {
                 token_sequence: self.challenge_token_sequence,
-                #[cfg(not(feature = "static_alloc"))]
+                //#[cfg(not(feature = "static_alloc"))]
                 token_data: self.challenge_token_data,
             },
             ClientState::Connected => Packet::KeepAlive {

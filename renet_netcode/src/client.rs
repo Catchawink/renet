@@ -10,12 +10,14 @@ use renet::{Bytes, ClientId, DefaultChannel, Packet, RenetClient, UnreliableRef}
 use super::NetcodeTransportError;
 
 #[cfg(feature = "static_alloc")]
-use once_mut::once_mut;
+use renetcode::allocate_psram_u8_slice;
+//#[cfg(feature = "static_alloc")]
+//use once_mut::once_mut;
 
-#[cfg(feature = "static_alloc")]
-once_mut! {
-    pub static mut BUFFER: [u8; NETCODE_MAX_PACKET_BYTES] = [0u8; NETCODE_MAX_PACKET_BYTES];
-}
+//#[cfg(feature = "static_alloc")]
+//once_mut! {
+//    pub static mut BUFFER: [u8; NETCODE_MAX_PACKET_BYTES] = [0u8; NETCODE_MAX_PACKET_BYTES];
+//}
 
 #[cfg_attr(not(target_arch = "xtensa"), derive(Debug))]
 #[cfg_attr(feature = "bevy", derive(bevy_ecs::system::Resource))]
@@ -23,7 +25,7 @@ pub struct NetcodeClientTransport {
     socket: UdpSocket,
     netcode_client: NetcodeClient,
     #[cfg(feature = "static_alloc")]
-    buffer: &'static mut [u8; NETCODE_MAX_PACKET_BYTES],
+    buffer: &'static mut [u8],
     #[cfg(not(feature = "static_alloc"))]
     buffer: [u8; NETCODE_MAX_PACKET_BYTES],
 }
@@ -35,7 +37,7 @@ impl NetcodeClientTransport {
 
         Ok(Self {
             #[cfg(feature = "static_alloc")]
-            buffer: BUFFER.take().unwrap(),
+            buffer: allocate_psram_u8_slice(NETCODE_MAX_PACKET_BYTES),//BUFFER.take().unwrap(),
             #[cfg(not(feature = "static_alloc"))]
             buffer: [0u8; NETCODE_MAX_PACKET_BYTES],
             socket,

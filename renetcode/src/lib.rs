@@ -78,3 +78,22 @@ const NETCODE_SEND_RATE: Duration = Duration::from_millis(250);
 pub const SERVER_ADDRESSES_COUNT: usize = 16;
 #[cfg(not(target_arch = "xtensa"))]
 pub const SERVER_ADDRESSES_COUNT: usize = 16;
+
+#[cfg(feature = "static_alloc")]
+pub fn allocate_psram_u8_slice(size: usize) -> &'static mut [u8] {
+    use std::slice;
+
+    use esp_idf_svc::sys::{heap_caps_malloc, MALLOC_CAP_SPIRAM};
+
+    unsafe {
+        // Allocate memory with MALLOC_CAP_SPIRAM capability
+        let ptr = heap_caps_malloc(size, MALLOC_CAP_SPIRAM) as *mut u8;
+        if ptr.is_null() {
+            //None // Allocation failed
+            panic!("Failed to allocate u8 array!")
+        } else {
+            // Convert the raw pointer into a mutable slice
+            slice::from_raw_parts_mut(ptr, size)
+        }
+    }
+}

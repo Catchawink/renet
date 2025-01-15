@@ -13,10 +13,11 @@ edition = "2021"
 [features]
 default = []
 replay_protection = []
-static_alloc = ["once_mut", "lazy_static"]
+static_alloc = ["once_mut", "lazy_static", "esp-idf-svc"]
 
 [dependencies]
 chacha20poly1305 = "0.10.0"
 log = "0.4.17"
 once_mut = { version = "0.1.1", optional = true }
 lazy_static = { version = "1.4", optional = true }
+esp-idf-svc = { git = "https://github.com/Catchawink/esp-idf-svc.git", features = ["alloc", "binstart", "native", "experimental"], optional = true }

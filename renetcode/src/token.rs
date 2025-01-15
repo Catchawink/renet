@@ -431,7 +431,7 @@ fn get_additional_data(protocol_id: u64, expire_timestamp: u64) -> [u8; NETCODE_
     buffer
 }
 
-#[cfg(not(target_arch = "xtensa"))]
+#[cfg(not(feature = "static_alloc"))]
 #[cfg(test)]
 mod tests {
     use super::*;

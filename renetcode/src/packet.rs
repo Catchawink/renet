@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "static_alloc")]
 use crate::token::PRIVATE_DATA;
-#[cfg(feature = "static_alloc")]
-use crate::client::CHALLENGE_TOKEN_DATA;
+//#[cfg(feature = "static_alloc")]
+//use crate::client::CHALLENGE_TOKEN_DATA;
 
 use crate::crypto::{dencrypted_in_place, encrypt_in_place};
 use crate::replay_protection::ReplayProtection;
@@ -44,12 +44,12 @@ pub enum Packet<'a> {
     ConnectionDenied,
     Challenge {
         token_sequence: u64,
-        #[cfg(not(feature = "static_alloc"))]
+        //#[cfg(not(feature = "static_alloc"))]
         token_data: [u8; NETCODE_CHALLENGE_TOKEN_BYTES], // encrypted ChallengeToken
     },
     Response {
         token_sequence: u64,
-        #[cfg(not(feature = "static_alloc"))]
+        //#[cfg(not(feature = "static_alloc"))]
         token_data: [u8; NETCODE_CHALLENGE_TOKEN_BYTES], // encrypted ChallengeToken
     },
     KeepAlive {
@@ -129,16 +129,16 @@ impl<'a> Packet<'a> {
         challenge_key: &[u8; NETCODE_KEY_BYTES],
     ) -> Result<Self, NetcodeError> {
         let token = ChallengeToken::new(client_id, user_data);
-        #[cfg(feature = "static_alloc")]
-        let mut buffer = CHALLENGE_TOKEN_DATA.lock().unwrap();
-        #[cfg(not(feature = "static_alloc"))]
+        //#[cfg(feature = "static_alloc")]
+        //let mut buffer = CHALLENGE_TOKEN_DATA.lock().unwrap();
+        //#[cfg(not(feature = "static_alloc"))]
         let mut buffer = [0u8; NETCODE_CHALLENGE_TOKEN_BYTES];
         token.write(&mut Cursor::new(&mut buffer[..]))?;
         encrypt_in_place(buffer.as_mut(), challenge_sequence, challenge_key, b"")?;
 
         Ok(Packet::Challenge {
             token_sequence: challenge_sequence,
-            #[cfg(not(feature = "static_alloc"))]
+            //#[cfg(not(feature = "static_alloc"))]
             token_data: buffer,
         })
     }
@@ -163,19 +163,19 @@ impl<'a> Packet<'a> {
                 writer.write_all(data)?;
             }
             Packet::Challenge {
-                #[cfg(not(feature = "static_alloc"))]
+                //#[cfg(not(feature = "static_alloc"))]
                 token_data,
                 token_sequence,
             }
             | Packet::Response {
-                #[cfg(not(feature = "static_alloc"))]
+                //#[cfg(not(feature = "static_alloc"))]
                 token_data,
                 token_sequence,
             } => {
                 writer.write_all(&token_sequence.to_le_bytes())?;
-                #[cfg(feature = "static_alloc")]
-                writer.write_all(CHALLENGE_TOKEN_DATA.lock().unwrap().as_ref())?;
-                #[cfg(not(feature = "static_alloc"))]
+                //#[cfg(feature = "static_alloc")]
+                //writer.write_all(CHALLENGE_TOKEN_DATA.lock().unwrap().as_ref())?;
+                //#[cfg(not(feature = "static_alloc"))]
                 writer.write_all(token_data)?;
             }
             Packet::KeepAlive { max_clients, client_index } => {
@@ -220,26 +220,26 @@ impl<'a> Packet<'a> {
             }
             PacketType::Challenge => {
                 let token_sequence = read_u64(src)?;
-                #[cfg(feature = "static_alloc")]
-                read_bytes_into(&mut CHALLENGE_TOKEN_DATA.lock().unwrap(), src)?;
-                #[cfg(not(feature = "static_alloc"))]
+                //#[cfg(feature = "static_alloc")]
+                //read_bytes_into(&mut CHALLENGE_TOKEN_DATA.lock().unwrap(), src)?;
+                //#[cfg(not(feature = "static_alloc"))]
                 let token_data = read_bytes(src)?;
 
                 Ok(Packet::Challenge {
-                    #[cfg(not(feature = "static_alloc"))]
+                    //#[cfg(not(feature = "static_alloc"))]
                     token_data,
                     token_sequence,
                 })
             }
             PacketType::Response => {
                 let token_sequence = read_u64(src)?;
-                #[cfg(feature = "static_alloc")]
-                read_bytes_into(&mut CHALLENGE_TOKEN_DATA.lock().unwrap(), src)?;
-                #[cfg(not(feature = "static_alloc"))]
+                //#[cfg(feature = "static_alloc")]
+                //read_bytes_into(&mut CHALLENGE_TOKEN_DATA.lock().unwrap(), src)?;
+                //#[cfg(not(feature = "static_alloc"))]
                 let token_data = read_bytes(src)?;
 
                 Ok(Packet::Response {
-                    #[cfg(not(feature = "static_alloc"))]
+                    //#[cfg(not(feature = "static_alloc"))]
                     token_data,
                     token_sequence,
                 })
@@ -418,7 +418,7 @@ fn read_sequence(source: &mut impl io::Read, len: usize) -> Result<u64, io::Erro
     Ok(u64::from_le_bytes(seq_scratch))
 }
 
-#[cfg(not(target_arch = "xtensa"))]
+#[cfg(not(feature = "static_alloc"))]
 #[cfg(test)]
 mod tests {
     use crate::{crypto::generate_random_bytes, NETCODE_MAX_PACKET_BYTES, NETCODE_MAX_PAYLOAD_BYTES};
