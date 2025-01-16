@@ -29,6 +29,7 @@ mod token;
 pub use client::{ClientAuthentication, DisconnectReason, NetcodeClient};
 pub use crypto::generate_random_bytes;
 pub use error::NetcodeError;
+use octets::Octets;
 #[cfg(not(feature = "static_alloc"))]
 pub use server::{NetcodeServer, ServerAuthentication, ServerConfig, ServerResult};
 pub use token::{ConnectToken, TokenGenerationError};
@@ -80,10 +81,11 @@ pub const SERVER_ADDRESSES_COUNT: usize = 16;
 pub const SERVER_ADDRESSES_COUNT: usize = 16;
 
 #[cfg(feature = "static_alloc")]
+use esp_idf_svc::sys::*;
+
+#[cfg(feature = "static_alloc")]
 pub fn allocate_psram_u8_slice(size: usize) -> &'static mut [u8] {
     use std::slice;
-
-    use esp_idf_svc::sys::{heap_caps_malloc, MALLOC_CAP_SPIRAM};
 
     unsafe {
         // Allocate memory with MALLOC_CAP_SPIRAM capability
@@ -96,4 +98,65 @@ pub fn allocate_psram_u8_slice(size: usize) -> &'static mut [u8] {
             slice::from_raw_parts_mut(ptr, size)
         }
     }
+}
+
+pub trait ToVecFlexible {
+    fn to_vec_flexible(&self) -> Vec<u8>;
+}
+
+impl ToVecFlexible for [u8] {
+	#[cfg(feature = "static_alloc")]
+    fn to_vec_flexible(&self) -> Vec<u8> {
+        let len = self.len();
+
+        // Allocate memory in PSRAM
+        let psram_ptr = unsafe {
+            heap_caps_malloc(len, MALLOC_CAP_SPIRAM as u32) as *mut u8
+        };
+
+        if psram_ptr.is_null() {
+        	panic!("Failed to allocate memory in PSRAM")
+        }
+
+        // Copy data from the slice into PSRAM
+        unsafe {
+            std::ptr::copy_nonoverlapping(self.as_ptr(), psram_ptr, len);
+        }
+
+        // Convert the allocated memory into a Vec<u8>
+        unsafe { Vec::from_raw_parts(psram_ptr, len, len) }
+    }
+
+	#[cfg(not(feature = "static_alloc"))]
+	fn to_vec_flexible(&self) -> Vec<u8> {
+		self.to_vec()
+	}
+}
+
+impl ToVecFlexible for Octets<'_> {
+    fn to_vec_flexible(&self) -> Vec<u8> {
+        let len = self.len();
+
+        // Allocate memory in PSRAM
+        let psram_ptr = unsafe {
+            heap_caps_malloc(len, MALLOC_CAP_SPIRAM as u32) as *mut u8
+        };
+
+        if psram_ptr.is_null() {
+            panic!("Failed to allocate memory in PSRAM")
+        }
+
+        // Copy data from the slice into PSRAM
+        unsafe {
+            std::ptr::copy_nonoverlapping(self.buf().as_ptr(), psram_ptr, len);
+        }
+
+        // Convert the allocated memory into a Vec<u8>
+        unsafe { Vec::from_raw_parts(psram_ptr, len, len) }
+    }
+
+	#[cfg(not(feature = "static_alloc"))]
+	fn to_vec_flexible(&self) -> Vec<u8> {
+		self.to_vec()
+	}
 }

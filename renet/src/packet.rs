@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use renetcode::ToVecFlexible;
 use std::{fmt, ops::Range};
 
 pub type Payload = Vec<u8>;
@@ -555,7 +556,7 @@ impl Packet {
                     let message_id = b.get_varint()?;
                     let payload = b.get_bytes_with_varint_length()?;
 
-                    messages.push((message_id, payload.to_vec().into()));
+                    messages.push((message_id, payload.to_vec_flexible().into()));
                 }
 
                 Ok(Packet::SmallReliable {
@@ -572,7 +573,7 @@ impl Packet {
                 let mut messages: Vec<Bytes> = Vec::with_capacity(64);
                 for _ in 0..messages_len {
                     let payload = b.get_bytes_with_varint_length()?;
-                    messages.push(payload.to_vec().into());
+                    messages.push(payload.to_vec_flexible().into());
                 }
 
                 Ok(Packet::SmallUnreliable {
@@ -606,7 +607,7 @@ impl Packet {
                     message_id,
                     slice_index,
                     num_slices,
-                    payload: payload.to_vec().into(),
+                    payload: payload.to_vec_flexible().into(),
                 };
                 Ok(Packet::ReliableSlice {
                     sequence,
@@ -631,7 +632,7 @@ impl Packet {
                     message_id,
                     slice_index,
                     num_slices,
-                    payload: payload.to_vec().into(),
+                    payload: payload.to_vec_flexible().into(),
                 };
                 Ok(Packet::UnreliableSlice {
                     sequence,

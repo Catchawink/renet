@@ -21,3 +21,4 @@ log = "0.4.17"
 once_mut = { version = "0.1.1", optional = true }
 lazy_static = { version = "1.4", optional = true }
 esp-idf-svc = { git = "https://github.com/Catchawink/esp-idf-svc.git", features = ["alloc", "binstart", "native", "experimental"], optional = true }
+octets = "0.3"

@@ -5,6 +5,8 @@ mod client;
 mod server;
 
 pub use client::*;
+use octets::Octets;
+use renetcode::ToVecFlexible;
 #[cfg(not(feature = "static_alloc"))]
 pub use server::*;
 
