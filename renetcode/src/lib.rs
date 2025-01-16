@@ -134,6 +134,8 @@ impl ToVecFlexible for [u8] {
 }
 
 impl ToVecFlexible for Octets<'_> {
+	
+	#[cfg(feature = "static_alloc")]
     fn to_vec_flexible(&self) -> Vec<u8> {
         let len = self.len();
 
