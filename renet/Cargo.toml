@@ -13,7 +13,7 @@ version = "0.0.16"
 bevy = ["dep:bevy_ecs"]
 
 [dependencies]
-bevy_ecs = { git = "https://github.com/MrGVSV/bevy.git", branch = "mrgvsv/reflect/serializable-dynamic-types"", optional = true }
+bevy_ecs = { git = "https://github.com/MrGVSV/bevy.git", branch = "mrgvsv/reflect/serializable-dynamic-types", optional = true }
 bytes = "1.1"
 log = "0.4.17"
 octets = "0.3"
