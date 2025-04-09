@@ -15,4 +15,4 @@ bevy = ["dep:bevy_ecs"]
 [dependencies]
 renet = { path = "../renet", version = "0.0.16" }
 egui = "0.29.1"
-bevy_ecs = { git = "https://github.com/empathic-ai/bevy.git", branch = "mrgvsv/reflect/serializable-dynamic-types", optional = true }
+bevy_ecs = { git = "https://github.com/empathic-ai/bevy.git", branch = "reflect/serializable-dynamic-types", optional = true }

@@ -15,7 +15,7 @@ netcode = ["bevy_renet/netcode"]
 steam = ["bevy_renet/steam"]
 
 [dependencies]
-bevy = { git = "https://github.com/empathic-ai/bevy.git", branch = "mrgvsv/reflect/serializable-dynamic-types", default-features = false, features = [
+bevy = { git = "https://github.com/empathic-ai/bevy.git", branch = "reflect/serializable-dynamic-types", default-features = false, features = [
     "bevy_core_pipeline",
     "bevy_render",
     "bevy_asset",
