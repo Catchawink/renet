@@ -6,7 +6,7 @@
 	"rust-analyzer.cargo.extraArgs": ["-Zbuild-std=panic_abort,std", "-Zbuild-std-features=panic_immediate_abort"],
 	"rust-analyzer.cargo.extraEnv": {
 		"RUSTUP_TOOLCHAIN": "esp",
-		"IDF_PATH": "D:\\.esp\\esp-idf\\v5.3.1",
+		"IDF_PATH": "C:\\.esp\\esp-idf\\v5.3.1",
 	},
 	"terminal.integrated.env.windows": {
 		"RUSTUP_TOOLCHAIN": "esp",

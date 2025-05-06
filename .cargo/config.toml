@@ -2,9 +2,9 @@
 
 [env]
 ESP_IDF_PATH_ISSUES = "warn"
-ESP_IDF_VERSION = { value = "tag:v5.3.1" } # Was 5.2.1
+ESP_IDF_VERSION = { value = "tag:v5.3.1" }
 ESP_LOG="info"
-ESP_IDF_TOOLS_INSTALL_DIR = "custom:D:\\.esp"
+ESP_IDF_TOOLS_INSTALL_DIR = "custom:C:\\.esp"
 
 [net]
 git-fetch-with-cli = true

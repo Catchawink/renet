@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bevy::window::PrimaryWindow;
+use bevy::window::{PrimaryWindow, Window};
 use bevy::{
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::Vec3,
@@ -125,9 +125,11 @@ fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins);
     app.add_plugins(RenetClientPlugin);
-    app.add_plugins(FrameTimeDiagnosticsPlugin);
+    app.add_plugins(FrameTimeDiagnosticsPlugin::default());
     app.add_plugins(LogDiagnosticsPlugin::default());
-    app.add_plugins(EguiPlugin);
+    app.add_plugins(EguiPlugin {
+        enable_multipass_for_primary_context: false,
+    });
 
     #[cfg(feature = "netcode")]
     add_netcode_network(&mut app);
@@ -175,7 +177,7 @@ fn player_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut player_input: ResMut<PlayerInput>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
-    target_query: Query<&Transform, With<Target>>,
+    target_transform: Single<&Transform, With<Target>>,
     mut player_commands: EventWriter<PlayerCommand>,
 ) {
     player_input.left = keyboard_input.pressed(KeyCode::KeyA) || keyboard_input.pressed(KeyCode::ArrowLeft);
@@ -184,8 +186,7 @@ fn player_input(
     player_input.down = keyboard_input.pressed(KeyCode::KeyS) || keyboard_input.pressed(KeyCode::ArrowDown);
 
     if mouse_button_input.just_pressed(MouseButton::Left) {
-        let target_transform = target_query.single();
-        player_commands.send(PlayerCommand::BasicAttack {
+        player_commands.write(PlayerCommand::BasicAttack {
             cast_at: target_transform.translation,
         });
     }
@@ -283,13 +284,13 @@ fn client_sync_players(
 struct Target;
 
 fn update_target_system(
-    primary_window: Query<&Window, With<PrimaryWindow>>,
-    mut target_query: Query<&mut Transform, With<Target>>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
+    primary_window: Single<&Window, With<PrimaryWindow>>,
+    mut target_transform: Single<&mut Transform, With<Target>>,
+    camera_query: Single<(&Camera, &GlobalTransform)>,
 ) {
-    let (camera, camera_transform) = camera_query.single();
-    let mut target_transform = target_query.single_mut();
-    if let Some(cursor_pos) = primary_window.single().cursor_position() {
+    let (camera, camera_transform) = *camera_query;
+
+    if let Some(cursor_pos) = primary_window.cursor_position() {
         if let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_pos) {
             if let Some(distance) = ray.intersect_plane(Vec3::Y, InfinitePlane3d::new(Vec3::Y)) {
                 target_transform.translation = ray.direction * distance + ray.origin;
@@ -317,16 +318,13 @@ fn setup_target(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut ma
 
 fn camera_follow(
     time: Res<Time>,
-    mut camera_query: Query<&mut Transform, (With<Camera>, Without<ControlledPlayer>)>,
-    player_query: Query<&Transform, With<ControlledPlayer>>,
+    mut camera_transform: Single<&mut Transform, (With<Camera>, Without<ControlledPlayer>)>,
+    player_transform: Single<&Transform, With<ControlledPlayer>>,
 ) {
-    let mut cam_transform = camera_query.single_mut();
-    if let Ok(player_transform) = player_query.get_single() {
-        let eye = Vec3::new(player_transform.translation.x, 8., player_transform.translation.z + 2.5);
-        if eye.distance(cam_transform.translation) > 10.0 {
-            cam_transform.translation = eye;
-        } else {
-            cam_transform.translation.smooth_nudge(&eye, 8.0, time.delta_secs());
-        }
+    let eye = Vec3::new(player_transform.translation.x, 16., player_transform.translation.z + 5.);
+    if eye.distance(camera_transform.translation) > 10.0 {
+        camera_transform.translation = eye;
+    } else {
+        camera_transform.translation.smooth_nudge(&eye, 16.0, time.delta_secs());
     }
 }
