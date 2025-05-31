@@ -12,6 +12,6 @@ members = [
 resolver = "2"
 
 [patch.crates-io]
-esp-idf-sys = { git = "https://github.com/Catchawink/esp-idf-sys.git" }
-esp-idf-hal = { git = "https://github.com/Catchawink/esp-idf-hal.git" }
-embuild = { git = "https://github.com/Catchawink/embuild.git" }
+esp-idf-sys = { git = "https://github.com/Catchawink/esp-idf-sys.git", branch = "temp" }
+esp-idf-hal = { git = "https://github.com/Catchawink/esp-idf-hal.git", branch = "temp" }
+embuild = { git = "https://github.com/Catchawink/embuild.git", branch = "temp" }
